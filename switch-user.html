@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>切换测试用户 - 牧美满</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; }
+</style>
+</head>
+<body class="flex items-center justify-center min-h-screen px-4">
+
+<div class="w-full max-w-md">
+  <div class="text-center mb-8">
+    <h1 class="heading text-3xl text-[#1F2421] mb-1">
+      切换<span style="color: #C4612F; font-style: italic;">测试用户</span>
+    </h1>
+    <p class="text-[#5C635D] text-sm">设置当前H5用户身份</p>
+  </div>
+
+  <div class="bg-white rounded-3xl border border-[#E7E1D7] shadow-sm p-8">
+    <div class="mb-6">
+      <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl mb-4">
+        <p class="text-sm text-blue-800 mb-2">
+          <strong>当前用户ID：</strong><span id="currentId">加载中...</span>
+        </p>
+        <p class="text-xs text-blue-700" id="currentInfo">加载中...</p>
+      </div>
+
+      <div class="space-y-3">
+        <button onclick="switchToTestUser()"
+                class="w-full px-6 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full transition-colors">
+          切换为测试用户（ID=1）
+        </button>
+
+        <button onclick="createNewUser()"
+                class="w-full px-6 py-3 border border-[#E7E1D7] text-[#1F2421] rounded-full hover:bg-[#FBF9F5] transition-colors">
+          创建新匿名用户
+        </button>
+
+        <button onclick="window.location.href='customer/index.html'"
+                class="w-full px-6 py-3 bg-[#1F2421] hover:bg-[#2a2f2b] text-white rounded-full transition-colors">
+          进入H5端
+        </button>
+      </div>
+    </div>
+
+    <div id="result" class="hidden mt-4">
+      <!-- 结果显示 -->
+    </div>
+  </div>
+</div>
+
+<script src="db.js"></script>
+<script>
+function showCurrentUser() {
+  const customerId = localStorage.getItem('_customer_id');
+  document.getElementById('currentId').textContent = customerId || '未设置';
+
+  if (customerId) {
+    const customers = DB._get('customers');
+    const customer = customers.find(c => c.id === parseInt(customerId));
+    if (customer) {
+      document.getElementById('currentInfo').textContent =
+        `姓名: ${customer.name || '未设置'} | 手机: ${customer.phone || '未设置'}`;
+    } else {
+      document.getElementById('currentInfo').textContent = '用户不存在';
+    }
+  } else {
+    document.getElementById('currentInfo').textContent = '首次访问H5端时会自动创建';
+  }
+}
+
+function switchToTestUser() {
+  // 检查测试用户是否存在
+  const customers = DB._get('customers');
+  const testUser = customers.find(c => c.id === 1);
+
+  if (!testUser) {
+    alert('测试用户不存在！请先重置数据库。');
+    return;
+  }
+
+  // 设置为测试用户
+  localStorage.setItem('_customer_id', '1');
+
+  const resultDiv = document.getElementById('result');
+  resultDiv.className = 'mt-4 p-4 bg-green-50 border border-green-200 rounded-xl';
+  resultDiv.innerHTML = `
+    <p class="text-sm text-green-800 mb-2">✓ 已切换为测试用户！</p>
+    <p class="text-xs text-green-700">姓名: ${testUser.name}</p>
+    <p class="text-xs text-green-700">手机: ${testUser.phone}</p>
+    <p class="text-xs text-green-700">账号: ${testUser.username}</p>
+  `;
+  resultDiv.classList.remove('hidden');
+
+  showCurrentUser();
+}
+
+function createNewUser() {
+  // 清除当前用户ID
+  localStorage.removeItem('_customer_id');
+
+  const resultDiv = document.getElementById('result');
+  resultDiv.className = 'mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl';
+  resultDiv.innerHTML = `
+    <p class="text-sm text-blue-800">✓ 已清除用户ID</p>
+    <p class="text-xs text-blue-700">下次访问H5端时会自动创建新用户</p>
+  `;
+  resultDiv.classList.remove('hidden');
+
+  showCurrentUser();
+}
+
+showCurrentUser();
+</script>
+</body>
+</html>

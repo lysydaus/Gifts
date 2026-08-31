@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>基础配置 - 商家后台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; }
+</style>
+</head>
+<body>
+
+<div id="nav"></div>
+
+<div class="max-w-5xl mx-auto px-6 py-6">
+  <div class="mb-6">
+    <h2 class="heading text-3xl text-[#1F2421] mb-1">基础配置</h2>
+    <p class="text-[#5C635D] text-sm">系统基础参数设置</p>
+  </div>
+
+  <div class="space-y-6">
+    <!-- 礼卡配置 -->
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-6">
+      <h3 class="text-lg font-semibold text-[#1F2421] mb-4">礼卡配置</h3>
+      <form id="cardConfigForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-[#1F2421] mb-2">默认有效期（天）</label>
+          <input type="number" id="validityDays" required min="1"
+                 class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"/>
+          <p class="text-xs text-[#5C635D] mt-1">新生成礼卡的默认有效期</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-[#1F2421] mb-2">自动核销天数</label>
+          <input type="number" id="autoVerifyDays" required min="0"
+                 class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"/>
+          <p class="text-xs text-[#5C635D] mt-1">用户签收后多少天自动核销（0表示不自动）</p>
+        </div>
+
+        <button type="submit"
+                class="px-6 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full transition-colors">
+          保存礼卡配置
+        </button>
+      </form>
+    </div>
+
+    <!-- 物流配置 -->
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-6">
+      <h3 class="text-lg font-semibold text-[#1F2421] mb-4">物流配置</h3>
+      <form id="logisticsConfigForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-[#1F2421] mb-2">支持的物流公司</label>
+          <textarea id="logisticsProviders" rows="4"
+                    class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+                    placeholder="每行一个物流公司名称"></textarea>
+        </div>
+
+        <button type="submit"
+                class="px-6 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full transition-colors">
+          保存物流配置
+        </button>
+      </form>
+    </div>
+
+    <!-- 公司信息 -->
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-6">
+      <h3 class="text-lg font-semibold text-[#1F2421] mb-4">公司信息</h3>
+      <form id="companyConfigForm" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-[#1F2421] mb-2">公司名称</label>
+            <input type="text" id="companyName" required
+                   class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"/>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-[#1F2421] mb-2">服务电话</label>
+            <input type="tel" id="servicePhone" required
+                   class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"/>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-[#1F2421] mb-2">服务时间</label>
+          <input type="text" id="serviceHours" required
+                 class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+                 placeholder="例如: 9:00-17:30"/>
+        </div>
+
+        <button type="submit"
+                class="px-6 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full transition-colors">
+          保存公司信息
+        </button>
+      </form>
+    </div>
+
+    <!-- 礼卡类型管理 -->
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-6">
+      <h3 class="text-lg font-semibold text-[#1F2421] mb-4">礼卡类型</h3>
+      <div class="space-y-3" id="cardTypesList">
+        <!-- 动态加载 -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../db.js"></script>
+<script src="_nav.js"></script>
+<script>
+checkAuth();
+document.getElementById('nav').innerHTML = MerchantNav.render('config');
+
+function loadConfig() {
+  const config = DB._get('system_config');
+
+  // 礼卡配置
+  document.getElementById('validityDays').value = config.card_validity_days || 1825;
+  document.getElementById('autoVerifyDays').value = config.auto_verify_days || 7;
+
+  // 物流配置
+  document.getElementById('logisticsProviders').value = (config.logistics_providers || []).join('\n');
+
+  // 公司信息
+  document.getElementById('companyName').value = config.company_name || '';
+  document.getElementById('servicePhone').value = config.service_phone || '';
+  document.getElementById('serviceHours').value = config.service_hours || '';
+
+  // 礼卡类型
+  loadCardTypes();
+}
+
+function loadCardTypes() {
+  const types = DB._get('card_types');
+  const container = document.getElementById('cardTypesList');
+
+  container.innerHTML = types.map(type => `
+    <div class="flex items-center justify-between p-4 border border-[#E7E1D7] rounded-xl">
+      <div class="flex items-center gap-4">
+        <div class="w-3 h-3 rounded-full" style="background-color: ${type.color}"></div>
+        <div>
+          <p class="font-medium text-[#1F2421]">${type.name}</p>
+          <p class="text-sm text-[#5C635D]">面额: ¥${type.amount} · 前缀: ${type.prefix} · 有效期: ${type.validity_days}天</p>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// 保存礼卡配置
+document.getElementById('cardConfigForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const config = DB._get('system_config');
+  config.card_validity_days = parseInt(document.getElementById('validityDays').value);
+  config.auto_verify_days = parseInt(document.getElementById('autoVerifyDays').value);
+
+  DB._set('system_config', config);
+  alert('保存成功');
+});
+
+// 保存物流配置
+document.getElementById('logisticsConfigForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const config = DB._get('system_config');
+  const providers = document.getElementById('logisticsProviders').value
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line);
+
+  config.logistics_providers = providers;
+  DB._set('system_config', config);
+  alert('保存成功');
+});
+
+// 保存公司信息
+document.getElementById('companyConfigForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const config = DB._get('system_config');
+  config.company_name = document.getElementById('companyName').value;
+  config.service_phone = document.getElementById('servicePhone').value;
+  config.service_hours = document.getElementById('serviceHours').value;
+
+  DB._set('system_config', config);
+  alert('保存成功');
+});
+
+loadConfig();
+</script>
+</body>
+</html>

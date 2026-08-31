@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>数据库调试 - 牧美满礼卡系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: monospace; background: #F7F4EF; padding: 20px; }
+  pre { background: white; padding: 15px; border-radius: 8px; overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<h1 style="margin-bottom: 20px;">数据库调试工具</h1>
+
+<div style="margin-bottom: 20px;">
+  <button onclick="showData()" style="padding: 10px 20px; background: #C4612F; color: white; border: none; border-radius: 8px; cursor: pointer;">
+    刷新数据
+  </button>
+  <button onclick="initDB()" style="padding: 10px 20px; background: #1F2421; color: white; border: none; border-radius: 8px; cursor: pointer; margin-left: 10px;">
+    强制初始化
+  </button>
+</div>
+
+<h2>客户数据 (customers)</h2>
+<pre id="customers">加载中...</pre>
+
+<h2>系统用户 (users)</h2>
+<pre id="users">加载中...</pre>
+
+<h2>礼卡 (gift_cards)</h2>
+<pre id="cards">加载中...</pre>
+
+<h2>初始化状态</h2>
+<pre id="status">加载中...</pre>
+
+<script src="db.js"></script>
+<script>
+function showData() {
+  // 客户数据
+  const customers = DB._get('customers');
+  document.getElementById('customers').textContent = JSON.stringify(customers, null, 2);
+
+  // 用户数据
+  const users = DB._get('users');
+  document.getElementById('users').textContent = JSON.stringify(users, null, 2);
+
+  // 礼卡数据
+  const cards = DB._get('gift_cards');
+  document.getElementById('cards').textContent = `共 ${cards.length} 张礼卡\n` + JSON.stringify(cards.slice(0, 3), null, 2);
+
+  // 初始化状态
+  const status = {
+    initialized: localStorage.getItem('_db_initialized'),
+    customersCount: customers.length,
+    usersCount: users.length,
+    cardsCount: cards.length
+  };
+  document.getElementById('status').textContent = JSON.stringify(status, null, 2);
+}
+
+function initDB() {
+  if (confirm('确认强制重新初始化数据库？')) {
+    localStorage.removeItem('_db_initialized');
+    DB.init();
+    alert('初始化完成！');
+    showData();
+  }
+}
+
+// 页面加载时显示数据
+showData();
+</script>
+</body>
+</html>

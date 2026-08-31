@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>设置 - 牧美满</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; letter-spacing: -0.02em; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .field { width: 100%; padding: 0.75rem 1rem; border-radius: 0.75rem; border: 1px solid #E7E1D7; outline: none; }
+  .field:focus { border-color: #C4612F; }
+  .label { display: block; font-size: 0.875rem; font-weight: 500; color: #1F2421; margin-bottom: 0.5rem; }
+</style>
+<link rel="stylesheet" href="_mobile.css"/>
+</head>
+<body>
+
+<!-- 顶部 -->
+<div class="bg-white border-b border-[#E7E1D7] px-4 py-3 sticky top-0 z-40">
+  <div class="flex items-center gap-3">
+    <a href="profile.html" class="w-9 h-9 rounded-full hover:bg-[#FBF9F5] flex items-center justify-center transition-colors">
+      <span class="material-symbols-outlined text-[#1F2421]">arrow_back</span>
+    </a>
+    <h1 class="text-lg font-semibold text-[#1F2421]">设置</h1>
+  </div>
+</div>
+
+<!-- 主内容 -->
+<div class="px-4 py-6 pb-10 space-y-6">
+
+  <!-- 个人信息 -->
+  <div class="bg-white rounded-2xl border border-[#E7E1D7] overflow-hidden">
+    <div class="px-5 py-4 border-b border-[#E7E1D7]">
+      <h3 class="text-base font-semibold text-[#1F2421]">个人信息</h3>
+    </div>
+    <form id="profileForm" class="p-5 space-y-4">
+      <div>
+        <label class="label">账号</label>
+        <input type="text" id="loginUsername" class="field" placeholder="请输入账号（仅支持字母和数字）"/>
+        <p class="text-xs text-[#5C635D] mt-1 ml-1">账号仅支持英文字母（大小写）和数字</p>
+      </div>
+      <div>
+        <label class="label">账号名</label>
+        <input type="text" id="profileName" class="field" placeholder="请输入账号名（支持中英文）"/>
+      </div>
+      <div>
+        <label class="label">联系电话</label>
+        <input type="tel" id="profilePhone" class="field" placeholder="请输入手机号"/>
+      </div>
+      <div>
+        <label class="label">邮箱地址（选填）</label>
+        <input type="email" id="profileEmail" class="field" placeholder="请输入邮箱"/>
+      </div>
+      <button type="submit"
+              class="w-full px-4 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full font-medium transition-colors">
+        保存
+      </button>
+    </form>
+  </div>
+
+  <!-- 修改密码 -->
+  <div class="bg-white rounded-2xl border border-[#E7E1D7] overflow-hidden">
+    <div class="px-5 py-4 border-b border-[#E7E1D7]">
+      <h3 class="text-base font-semibold text-[#1F2421]">修改密码</h3>
+    </div>
+    <form id="passwordForm" class="p-5 space-y-4">
+      <div>
+        <label class="label">当前密码</label>
+        <input type="password" id="oldPassword" class="field" placeholder="请输入当前密码"/>
+      </div>
+      <div>
+        <label class="label">新密码</label>
+        <input type="password" id="newPassword" class="field" placeholder="请输入新密码"/>
+      </div>
+      <div>
+        <label class="label">确认新密码</label>
+        <input type="password" id="confirmPassword" class="field" placeholder="请再次输入新密码"/>
+      </div>
+      <button type="submit"
+              class="w-full px-4 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full font-medium transition-colors">
+        修改密码
+      </button>
+    </form>
+  </div>
+
+  <!-- 退出登录 -->
+  <button onclick="logout()"
+          class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-[#E7E1D7] text-[#C4612F] rounded-full font-medium hover:bg-[#FBF9F5] transition-colors">
+    <span class="material-symbols-outlined text-lg">logout</span>
+    <span>退出登录</span>
+  </button>
+</div>
+
+<script src="../db.js"></script>
+<script src="_nav.js"></script>
+<script>
+const customerId = getOrCreateCustomerId();
+
+function loadCustomer() {
+  const customer = DB.getCustomer(customerId);
+  if (customer) {
+    document.getElementById('profileName').value = customer.name || '';
+    document.getElementById('profilePhone').value = customer.phone || '';
+    document.getElementById('profileEmail').value = customer.email || '';
+    document.getElementById('loginUsername').value = customer.username || '';
+  }
+}
+
+// 保存个人信息（含账号）
+document.getElementById('profileForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const username = document.getElementById('loginUsername').value.trim();
+  const name = document.getElementById('profileName').value.trim();
+  const phone = document.getElementById('profilePhone').value.trim();
+  const email = document.getElementById('profileEmail').value.trim();
+
+  if (username && !/^[A-Za-z0-9]+$/.test(username)) {
+    alert('账号仅支持英文字母和数字');
+    return;
+  }
+
+  if (phone && !/^1\d{10}$/.test(phone)) {
+    alert('请输入正确的11位手机号');
+    return;
+  }
+
+  const result = DB.updateCustomerProfile(customerId, {
+    username: username || null,
+    name: name || null,
+    phone: phone || null,
+    email: email || null
+  });
+
+  alert(result.success ? '已保存' : (result.message || '保存失败'));
+});
+
+// 修改密码
+document.getElementById('passwordForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const oldPwd = document.getElementById('oldPassword').value;
+  const newPwd = document.getElementById('newPassword').value;
+  const confirmPwd = document.getElementById('confirmPassword').value;
+
+  if (!oldPwd || !newPwd || !confirmPwd) {
+    alert('请填写完整的密码信息');
+    return;
+  }
+  if (newPwd.length < 6) {
+    alert('新密码至少需要6位');
+    return;
+  }
+  if (newPwd !== confirmPwd) {
+    alert('两次输入的新密码不一致');
+    return;
+  }
+
+  const result = DB.changeCustomerPassword(customerId, oldPwd, newPwd);
+  if (result.success) {
+    alert('密码修改成功');
+    document.getElementById('passwordForm').reset();
+  } else {
+    alert(result.message || '密码修改失败');
+  }
+});
+
+// 退出登录
+function logout() {
+  if (confirm('确定要退出登录吗？')) {
+    localStorage.removeItem('_customer_id');
+    window.location.href = 'login.html';
+  }
+}
+
+loadCustomer();
+</script>
+</body>
+</html>

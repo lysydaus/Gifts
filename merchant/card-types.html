@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>礼卡种类管理 - 商家后台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; }
+</style>
+</head>
+<body>
+
+<div class="max-w-7xl mx-auto px-6 py-6">
+  <div class="mb-6 flex items-center justify-between">
+    <div>
+      <h2 class="heading text-3xl text-[#1F2421] mb-1">礼卡种类管理</h2>
+      <p class="text-[#5C635D] text-sm">管理礼卡类型及金额</p>
+    </div>
+    <button onclick="openAddModal()"
+            class="px-6 py-2.5 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full transition-colors">
+      + 添加礼卡类型
+    </button>
+  </div>
+
+  <!-- 搜索 -->
+  <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5 mb-6">
+    <div class="flex gap-4">
+      <input type="text" id="searchInput" placeholder="搜索礼卡类型名称或金额..."
+             class="flex-1 px-4 py-2 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+             oninput="loadCardTypes()"/>
+    </div>
+  </div>
+
+  <!-- 礼卡类型列表 -->
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="cardTypesList">
+    <!-- 加载中 -->
+  </div>
+</div>
+
+<!-- 添加/编辑弹窗 -->
+<div id="editModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-3xl max-w-md w-full p-8">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="heading text-2xl text-[#1F2421]" id="modalTitle">添加礼卡类型</h3>
+      <button onclick="closeEditModal()" class="text-[#5C635D] hover:text-[#1F2421]">✕</button>
+    </div>
+
+    <form onsubmit="saveCardType(event)" class="space-y-4">
+      <input type="hidden" id="editId"/>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">类型名称 *</label>
+        <input type="text" id="editName" required
+               class="w-full px-4 py-2 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="例如：398型"/>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">金额（元）*</label>
+        <input type="number" id="editAmount" required min="1"
+               class="w-full px-4 py-2 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="例如：398"/>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">卡号前缀</label>
+        <input type="text" id="editPrefix"
+               class="w-full px-4 py-2 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="例如：MMM398（默认自动生成）"/>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">有效期（天）</label>
+        <input type="number" id="editValidityDays" min="1"
+               class="w-full px-4 py-2 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="默认1825天（5年）"/>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">颜色标识</label>
+        <input type="color" id="editColor"
+               class="w-full h-12 px-2 py-1 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"/>
+      </div>
+
+      <div class="flex gap-3 pt-4">
+        <button type="button" onclick="closeEditModal()"
+                class="flex-1 px-6 py-2.5 border border-[#E7E1D7] text-[#1F2421] rounded-full hover:bg-[#FBF9F5] transition-colors">
+          取消
+        </button>
+        <button type="submit"
+                class="flex-1 px-6 py-2.5 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full transition-colors">
+          保存
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../db.js"></script>
+<script>
+// 检查登录状态
+const user = DB.getCurrentUser();
+if (!user || user.role !== 'merchant') {
+  window.location.href = 'login.html';
+}
+
+function loadCardTypes() {
+  const search = document.getElementById('searchInput').value;
+  const cardTypes = DB.getCardTypes({ search });
+
+  const container = document.getElementById('cardTypesList');
+
+  if (cardTypes.length === 0) {
+    container.innerHTML = '<div class="col-span-3 text-center py-12 text-[#5C635D]">暂无礼卡类型</div>';
+    return;
+  }
+
+  container.innerHTML = cardTypes.map(type => `
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] overflow-hidden hover:shadow-lg transition-shadow">
+      <div class="p-6">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <h3 class="text-xl font-semibold text-[#1F2421] mb-1">${type.name}</h3>
+            <p class="text-sm text-[#5C635D]">卡号前缀：${type.prefix}</p>
+          </div>
+          <div class="w-8 h-8 rounded-full border-2 border-[#E7E1D7]" style="background-color: ${type.color}"></div>
+        </div>
+
+        <div class="mb-4 pb-4 border-b border-[#E7E1D7]">
+          <p class="text-xs text-[#5C635D] mb-1">面额</p>
+          <p class="text-3xl font-bold text-[#C4612F]">¥${type.amount}</p>
+        </div>
+
+        <div class="mb-4">
+          <p class="text-xs text-[#5C635D] mb-1">有效期</p>
+          <p class="text-sm text-[#1F2421]">${type.validity_days} 天 (${Math.floor(type.validity_days / 365)}年)</p>
+        </div>
+
+        ${type.created_at ? `
+          <div class="mb-4">
+            <p class="text-xs text-[#5C635D] mb-1">创建时间</p>
+            <p class="text-sm text-[#1F2421]">${new Date(type.created_at).toLocaleDateString()}</p>
+          </div>
+        ` : ''}
+
+        <div class="flex gap-2">
+          <button onclick="editCardType(${type.id})"
+                  class="flex-1 px-4 py-2 border border-[#E7E1D7] text-[#1F2421] rounded-xl hover:bg-[#FBF9F5] transition-colors text-sm font-medium">
+            编辑
+          </button>
+          <button onclick="deleteCardType(${type.id})"
+                  class="px-4 py-2 border border-red-200 text-red-600 rounded-xl hover:bg-red-50 transition-colors text-sm font-medium">
+            删除
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openAddModal() {
+  document.getElementById('modalTitle').textContent = '添加礼卡类型';
+  document.getElementById('editId').value = '';
+  document.getElementById('editName').value = '';
+  document.getElementById('editAmount').value = '';
+  document.getElementById('editPrefix').value = '';
+  document.getElementById('editValidityDays').value = '1825';
+  document.getElementById('editColor').value = '#C4612F';
+  document.getElementById('editModal').classList.remove('hidden');
+}
+
+function editCardType(id) {
+  const type = DB.getCardType(id);
+  if (!type) return;
+
+  document.getElementById('modalTitle').textContent = '编辑礼卡类型';
+  document.getElementById('editId').value = type.id;
+  document.getElementById('editName').value = type.name;
+  document.getElementById('editAmount').value = type.amount;
+  document.getElementById('editPrefix').value = type.prefix || '';
+  document.getElementById('editValidityDays').value = type.validity_days || 1825;
+  document.getElementById('editColor').value = type.color || '#C4612F';
+  document.getElementById('editModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.add('hidden');
+}
+
+function saveCardType(event) {
+  event.preventDefault();
+
+  const id = document.getElementById('editId').value;
+  const amount = parseInt(document.getElementById('editAmount').value);
+
+  const data = {
+    name: document.getElementById('editName').value,
+    amount: amount,
+    prefix: document.getElementById('editPrefix').value || `MMM${amount}`,
+    validity_days: parseInt(document.getElementById('editValidityDays').value) || 1825,
+    color: document.getElementById('editColor').value
+  };
+
+  if (id) {
+    DB.updateCardType(parseInt(id), data);
+  } else {
+    DB.createCardType(data);
+  }
+
+  closeEditModal();
+  loadCardTypes();
+}
+
+function deleteCardType(id) {
+  if (!confirm('确认删除此礼卡类型吗？删除后相关礼卡可能无法正常使用。')) return;
+
+  DB.deleteCardType(id);
+  loadCardTypes();
+}
+
+loadCardTypes();
+</script>
+</body>
+</html>

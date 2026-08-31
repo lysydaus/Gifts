@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<title>测试客户数据读取</title>
+</head>
+<body>
+<h1>测试客户数据读取</h1>
+<div id="result"></div>
+
+<script src="db.js"></script>
+<script>
+console.log('=== 测试开始 ===');
+
+// 1. 直接读取localStorage
+const rawData = localStorage.getItem('customers');
+console.log('1. localStorage原始数据:', rawData);
+
+// 2. 使用DB._get读取
+const customers1 = DB._get('customers');
+console.log('2. DB._get("customers"):', customers1);
+
+// 3. 使用DB.getCustomers读取
+const customers2 = DB.getCustomers();
+console.log('3. DB.getCustomers():', customers2);
+
+// 4. 显示结果
+document.getElementById('result').innerHTML = `
+  <h2>测试结果：</h2>
+  <p>localStorage原始数据: ${rawData ? '存在' : '不存在'}</p>
+  <p>DB._get读取数量: ${customers1.length}</p>
+  <p>DB.getCustomers读取数量: ${customers2.length}</p>
+  <pre>${JSON.stringify(customers2, null, 2)}</pre>
+`;
+
+console.log('=== 测试结束 ===');
+</script>
+</body>
+</html>

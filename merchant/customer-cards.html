@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>客户礼卡 - 商家后台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; }
+</style>
+</head>
+<body>
+
+<div class="max-w-7xl mx-auto px-6 py-6">
+
+  <!-- 页头 -->
+  <div class="mb-6 flex items-center justify-between">
+    <div>
+      <h2 class="heading text-3xl text-[#1F2421] mb-1">客户礼卡</h2>
+      <p class="text-[#5C635D] text-sm">查询每位客户名下登记的礼卡</p>
+    </div>
+    <button onclick="openBindModal()"
+            class="px-5 py-2.5 bg-[#C4612F] hover:bg-[#A94E22] text-white text-sm font-medium rounded-full transition-colors">
+      + 登记礼卡
+    </button>
+  </div>
+
+  <!-- 统计 -->
+  <div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+      <p class="text-xs text-[#5C635D] mb-1">持卡客户数</p>
+      <p class="text-2xl font-semibold text-[#1F2421]" id="stat_customers">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+      <p class="text-xs text-[#5C635D] mb-1">已登记礼卡</p>
+      <p class="text-2xl font-semibold text-[#C4612F]" id="stat_bound">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+      <p class="text-xs text-[#5C635D] mb-1">可用卡</p>
+      <p class="text-2xl font-semibold text-green-600" id="stat_active">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+      <p class="text-xs text-[#5C635D] mb-1">已使用</p>
+      <p class="text-2xl font-semibold text-gray-500" id="stat_used">0</p>
+    </div>
+  </div>
+
+  <!-- 搜索 -->
+  <div class="bg-white rounded-2xl border border-[#E7E1D7] p-4 mb-5">
+    <div class="flex gap-3">
+      <input type="text" id="searchInput" placeholder="搜索客户姓名、手机号..."
+             class="flex-1 px-4 py-2 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F] text-sm"
+             oninput="render()"/>
+    </div>
+  </div>
+
+  <!-- 客户礼卡列表 -->
+  <div id="mainContent" class="space-y-4"></div>
+</div>
+
+<!-- 登记礼卡弹窗 -->
+<div id="bindModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-3xl max-w-md w-full p-8">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="heading text-2xl text-[#1F2421]">登记礼卡</h3>
+      <button onclick="closeBindModal()" class="text-[#5C635D] hover:text-[#1F2421] text-xl">✕</button>
+    </div>
+    <form onsubmit="submitBind(event)" class="space-y-5">
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">选择客户 <span class="text-red-500">*</span></label>
+        <select id="bindCustomer" required
+                class="w-full px-4 py-2.5 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F] text-sm">
+          <option value="">请选择客户</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">选择礼卡 <span class="text-red-500">*</span></label>
+        <select id="bindCard" required
+                class="w-full px-4 py-2.5 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F] text-sm">
+          <option value="">请先选择客户</option>
+        </select>
+        <p class="text-xs text-[#5C635D] mt-1">仅显示未绑定的礼卡</p>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeBindModal()"
+                class="flex-1 px-4 py-2.5 border border-[#E7E1D7] text-[#1F2421] rounded-full hover:bg-[#FBF9F5] text-sm transition-colors">
+          取消
+        </button>
+        <button type="submit"
+                class="flex-1 px-4 py-2.5 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full text-sm transition-colors">
+          确认登记
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 礼卡详情弹窗 -->
+<div id="cardModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-3xl max-w-md w-full p-8 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="heading text-2xl text-[#1F2421]">礼卡详情</h3>
+      <button onclick="document.getElementById('cardModal').classList.add('hidden')"
+              class="text-[#5C635D] hover:text-[#1F2421] text-xl">✕</button>
+    </div>
+    <div id="cardModalContent"></div>
+  </div>
+</div>
+
+<script src="../db.js"></script>
+<script>
+const user = DB.getCurrentUser();
+if (!user || user.role !== 'merchant') {
+  window.location.href = 'login.html';
+}
+
+const STATUS_LABEL = {
+  active:  { label: '可用',   bg: 'bg-green-100',  text: 'text-green-700'  },
+  frozen:  { label: '已冻结', bg: 'bg-red-100',    text: 'text-red-700'    },
+  used:    { label: '已使用', bg: 'bg-gray-100',   text: 'text-gray-600'   },
+  expired: { label: '已过期', bg: 'bg-orange-100', text: 'text-orange-700' }
+};
+
+function cardBadge(status) {
+  const c = STATUS_LABEL[status] || STATUS_LABEL.active;
+  return `<span class="px-2 py-0.5 ${c.bg} ${c.text} rounded-full text-xs font-medium">${c.label}</span>`;
+}
+
+function render() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const allCards = DB._get('gift_cards');
+  const cardTypes = DB._get('card_types');
+  const customers = DB._get('customers');
+
+  // 只取已绑定客户的卡
+  const boundCards = allCards.filter(c => c.customer_id);
+
+  // 更新统计
+  const uniqueCustomers = new Set(boundCards.map(c => c.customer_id));
+  document.getElementById('stat_customers').textContent = uniqueCustomers.size;
+  document.getElementById('stat_bound').textContent = boundCards.length;
+  document.getElementById('stat_active').textContent = boundCards.filter(c => c.status === 'active').length;
+  document.getElementById('stat_used').textContent   = boundCards.filter(c => c.status === 'used').length;
+
+  // 按客户分组
+  const groups = {};
+  boundCards.forEach(card => {
+    const cid = card.customer_id;
+    if (!groups[cid]) {
+      const cust = customers.find(c => c.id === cid);
+      groups[cid] = {
+        id: cid,
+        name: cust ? (cust.name || cust.username || '-') : '未知客户',
+        phone: cust ? (cust.phone || '-') : '-',
+        username: cust ? (cust.username || '') : '',
+        cards: []
+      };
+    }
+    groups[cid].cards.push(card);
+  });
+
+  let list = Object.values(groups);
+
+  // 搜索过滤
+  if (search) {
+    list = list.filter(g =>
+      g.name.toLowerCase().includes(search) ||
+      g.phone.includes(search) ||
+      g.username.toLowerCase().includes(search)
+    );
+  }
+
+  list.sort((a, b) => b.cards.length - a.cards.length);
+
+  const container = document.getElementById('mainContent');
+  if (list.length === 0) {
+    container.innerHTML = `<div class="bg-white rounded-2xl border border-[#E7E1D7] p-16 text-center text-[#5C635D]">暂无持卡客户</div>`;
+    return;
+  }
+
+  container.innerHTML = list.map(g => {
+    const activeCount = g.cards.filter(c => c.status === 'active').length;
+    const usedCount   = g.cards.filter(c => c.status === 'used').length;
+    const totalAmt    = g.cards.reduce((s, c) => s + (c.amount || 0), 0);
+
+    return `
+      <div class="bg-white rounded-2xl border border-[#E7E1D7] overflow-hidden">
+        <!-- 客户头部 -->
+        <div class="flex items-center justify-between p-5 border-b border-[#E7E1D7] bg-[#FBF9F5]">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-[#F2E3D6] flex items-center justify-center text-[#C4612F] font-semibold text-lg">
+              ${(g.name || '?')[0]}
+            </div>
+            <div>
+              <p class="font-semibold text-[#1F2421]">${g.name}</p>
+              <p class="text-xs text-[#5C635D]">${g.phone}${g.username ? '  ·  账号：' + g.username : ''}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-6 text-sm">
+            <div class="text-right">
+              <p class="text-xs text-[#5C635D]">持卡数</p>
+              <p class="font-semibold text-[#1F2421]">${g.cards.length}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-[#5C635D]">可用</p>
+              <p class="font-semibold text-green-600">${activeCount}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-[#5C635D]">已使用</p>
+              <p class="font-semibold text-gray-500">${usedCount}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-[#5C635D]">总面额</p>
+              <p class="font-semibold text-[#C4612F]">¥${totalAmt.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 礼卡列表 -->
+        <div class="divide-y divide-[#E7E1D7]">
+          ${g.cards.map(card => {
+            const ct = cardTypes.find(t => t.id === card.type_id);
+            const cardNo = DB._decrypt(card.card_no_encrypted);
+            return `
+              <div class="flex items-center justify-between px-5 py-3 hover:bg-[#FBF9F5] transition-colors">
+                <div class="flex items-center gap-4 text-sm">
+                  <div class="w-2.5 h-2.5 rounded-full" style="background:${ct ? ct.color : '#C4612F'}"></div>
+                  <span class="font-mono text-xs text-[#5C635D] w-36 truncate">${cardNo}</span>
+                  <span class="text-[#1F2421]">${ct ? ct.name : '-'}</span>
+                  <span class="font-semibold text-[#C4612F]">¥${card.amount}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  ${cardBadge(card.status)}
+                  <span class="text-xs text-[#5C635D]">绑定于 ${card.bound_at ? new Date(card.bound_at).toLocaleDateString('zh-CN') : '-'}</span>
+                  <button onclick="viewCard(${card.id})" class="text-xs text-[#C4612F] hover:text-[#A94E22]">详情</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function viewCard(id) {
+  const cards = DB._get('gift_cards');
+  const card = cards.find(c => c.id === id);
+  if (!card) return;
+
+  const cardTypes = DB._get('card_types');
+  const ct = cardTypes.find(t => t.id === card.type_id);
+  const cardNo = DB._decrypt(card.card_no_encrypted);
+  const password = DB._decrypt(card.password_encrypted);
+  const sl = STATUS_LABEL[card.status] || STATUS_LABEL.active;
+
+  document.getElementById('cardModalContent').innerHTML = `
+    <div class="space-y-3 text-sm">
+      <div class="flex justify-between py-2 border-b border-[#E7E1D7]">
+        <span class="text-[#5C635D]">卡号</span>
+        <span class="font-mono text-[#1F2421]">${cardNo}</span>
+      </div>
+      <div class="flex justify-between py-2 border-b border-[#E7E1D7]">
+        <span class="text-[#5C635D]">密码</span>
+        <span class="font-mono text-[#1F2421]">${password}</span>
+      </div>
+      <div class="flex justify-between py-2 border-b border-[#E7E1D7]">
+        <span class="text-[#5C635D]">类型</span>
+        <span class="text-[#1F2421]">${ct ? ct.name : '-'}</span>
+      </div>
+      <div class="flex justify-between py-2 border-b border-[#E7E1D7]">
+        <span class="text-[#5C635D]">面额</span>
+        <span class="font-semibold text-[#C4612F]">¥${card.amount}</span>
+      </div>
+      <div class="flex justify-between py-2 border-b border-[#E7E1D7]">
+        <span class="text-[#5C635D]">状态</span>
+        <span class="px-2 py-0.5 ${sl.bg} ${sl.text} rounded-full text-xs font-medium">${sl.label}</span>
+      </div>
+      <div class="flex justify-between py-2 border-b border-[#E7E1D7]">
+        <span class="text-[#5C635D]">绑定时间</span>
+        <span class="text-[#5C635D]">${card.bound_at ? new Date(card.bound_at).toLocaleString('zh-CN') : '-'}</span>
+      </div>
+      <div class="flex justify-between py-2 border-b border-[#E7E1D7]">
+        <span class="text-[#5C635D]">创建时间</span>
+        <span class="text-[#5C635D]">${new Date(card.created_at).toLocaleString('zh-CN')}</span>
+      </div>
+      <div class="flex justify-between py-2">
+        <span class="text-[#5C635D]">有效期至</span>
+        <span class="text-[#5C635D]">${new Date(card.expire_at).toLocaleDateString('zh-CN')}</span>
+      </div>
+    </div>
+  `;
+  document.getElementById('cardModal').classList.remove('hidden');
+}
+
+render();
+
+// ── 登记礼卡弹窗 ────────────────────────────────────────
+function openBindModal() {
+  // 填充客户下拉
+  const customers = DB._get('customers') || [];
+  const sel = document.getElementById('bindCustomer');
+  sel.innerHTML = '<option value="">请选择客户</option>' +
+    customers.map(c =>
+      `<option value="${c.id}">${c.name || c.username}（${c.phone || '-'}）</option>`
+    ).join('');
+
+  // 清空礼卡下拉
+  document.getElementById('bindCard').innerHTML = '<option value="">请先选择客户</option>';
+
+  document.getElementById('bindModal').classList.remove('hidden');
+}
+
+function closeBindModal() {
+  document.getElementById('bindModal').classList.add('hidden');
+}
+
+// 选择客户后，刷新未绑定礼卡列表
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('bindCustomer').addEventListener('change', function() {
+    const cardSel = document.getElementById('bindCard');
+    if (!this.value) {
+      cardSel.innerHTML = '<option value="">请先选择客户</option>';
+      return;
+    }
+    const cardTypes = DB._get('card_types') || [];
+    const unbound = (DB._get('gift_cards') || []).filter(c => !c.customer_id && c.status === 'active');
+    if (unbound.length === 0) {
+      cardSel.innerHTML = '<option value="">暂无可用的未绑定礼卡</option>';
+      return;
+    }
+    cardSel.innerHTML = '<option value="">请选择礼卡</option>' +
+      unbound.map(c => {
+        const ct = cardTypes.find(t => t.id === c.type_id);
+        const cardNo = DB._decrypt(c.card_no_encrypted);
+        return `<option value="${c.id}">${cardNo}（${ct ? ct.name : '-'}，¥${c.amount}）</option>`;
+      }).join('');
+  });
+});
+
+function submitBind(e) {
+  e.preventDefault();
+  const customerId = parseInt(document.getElementById('bindCustomer').value);
+  const cardId     = parseInt(document.getElementById('bindCard').value);
+  if (!customerId || !cardId) return;
+
+  const cards = DB._get('gift_cards') || [];
+  const idx   = cards.findIndex(c => c.id === cardId);
+  if (idx === -1) return;
+
+  cards[idx].customer_id  = customerId;
+  cards[idx].bind_status  = 'bound';
+  cards[idx].bound_at     = new Date().toISOString();
+  DB._set('gift_cards', cards);
+
+  closeBindModal();
+  render();
+}
+</script>
+</body>
+</html>

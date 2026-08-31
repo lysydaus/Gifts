@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<title>恢复测试数据</title>
+<script src="db.js"></script>
+</head>
+<body>
+<h1>恢复测试数据工具</h1>
+<button onclick="restoreTestData()" style="padding: 12px 24px; background: #C4612F; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">
+  一键恢复测试数据
+</button>
+<div id="result" style="margin-top: 20px; padding: 12px; background: #f5f5f5; border-radius: 8px; display: none;"></div>
+
+<script>
+function restoreTestData() {
+  const result = document.getElementById('result');
+
+  try {
+    // 清除当前数据
+    localStorage.clear();
+
+    // 重新初始化数据库（触发db.js的初始化逻辑）
+    DB.init();
+
+    result.style.display = 'block';
+    result.style.background = '#d4edda';
+    result.style.color = '#155724';
+    result.innerHTML = `
+      <strong>✓ 测试数据恢复成功！</strong><br><br>
+      已恢复：<br>
+      • 5个客户账号（刘备、关羽、张飞、赵云、黄忠）<br>
+      • 刘备测试账号的3个订单：<br>
+      &nbsp;&nbsp;- 订单#9：悦享初味 牛肉礼盒 ￥398（已审核通过）<br>
+      &nbsp;&nbsp;- 订单#10：炙味醇享 牛肉礼盒 ￥888（待审核）<br>
+      &nbsp;&nbsp;- 订单#11：珍馐盛筵 羊肉礼盒 ￥598（已发货）<br>
+      • 所有礼卡数据<br>
+      • 收货地址数据<br><br>
+      <a href="merchant/login.html" style="color: #C4612F;">→ 前往商家登录</a> |
+      <a href="customer/index.html" style="color: #C4612F;">→ 前往客户首页</a>
+    `;
+
+    // 3秒后提示刷新
+    setTimeout(() => {
+      result.innerHTML += '<br><br><em>建议刷新浏览器以确保所有页面加载新数据</em>';
+    }, 1000);
+
+  } catch(e) {
+    result.style.display = 'block';
+    result.style.background = '#f8d7da';
+    result.style.color = '#721c24';
+    result.innerHTML = `<strong>✗ 恢复失败：</strong><br>${e.message}`;
+  }
+}
+</script>
+</body>
+</html>

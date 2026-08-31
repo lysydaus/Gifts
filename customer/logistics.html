@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>查看物流 - 牧美满</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; letter-spacing: -0.02em; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .timeline-dot { position: relative; }
+  .timeline-dot::before { content: ''; position: absolute; left: 50%; top: 100%; width: 2px; height: 100%; background: #E7E1D7; transform: translateX(-50%); }
+  .timeline-item:last-child .timeline-dot::before { display: none; }
+</style>
+<link rel="stylesheet" href="_mobile.css"/>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<div class="bg-white border-b border-[#E7E1D7] px-4 py-3 sticky top-0 z-40 flex items-center gap-3">
+  <a href="orders.html" class="text-[#1F2421]">
+    <span class="material-symbols-outlined">arrow_back</span>
+  </a>
+  <h1 class="text-lg font-semibold text-[#1F2421] flex-1">物流详情</h1>
+</div>
+
+<!-- 主内容 -->
+<div class="px-4 py-6 space-y-4" id="logisticsContent">
+  <!-- 动态加载 -->
+</div>
+
+<div id="nav"></div>
+
+<script src="../db.js"></script>
+<script src="_nav.js"></script>
+<script>
+document.getElementById('nav').innerHTML = CustomerNav.render('orders');
+DB.init();
+
+// 获取 URL 参数
+const urlParams = new URLSearchParams(window.location.search);
+const orderId = parseInt(urlParams.get('order'));
+
+if (!orderId) {
+  document.getElementById('logisticsContent').innerHTML = `
+    <div class="text-center py-12">
+      <span class="material-symbols-outlined text-6xl text-[#E7E1D7] mb-3">error</span>
+      <p class="text-[#5C635D]">订单信息错误</p>
+    </div>
+  `;
+} else {
+  loadLogistics(orderId);
+}
+
+function loadLogistics(orderId) {
+  const order = DB._get('orders').find(o => o.id === orderId);
+  const logisticsList = DB.getLogistics(orderId);
+  const container = document.getElementById('logisticsContent');
+
+  if (!order) {
+    container.innerHTML = `
+      <div class="text-center py-12">
+        <span class="material-symbols-outlined text-6xl text-[#E7E1D7] mb-3">error</span>
+        <p class="text-[#5C635D]">订单不存在</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (logisticsList.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-12">
+        <span class="material-symbols-outlined text-6xl text-[#E7E1D7] mb-3">local_shipping</span>
+        <p class="text-[#5C635D]">暂无物流信息</p>
+      </div>
+    `;
+    return;
+  }
+
+  // 订单状态映射
+  const orderStatusConfig = {
+    pending: { label: '待审核', color: 'gray' },
+    approved: { label: '已通过', color: 'blue' },
+    rejected: { label: '已驳回', color: 'red' },
+    shipped: { label: '已发货', color: 'orange' },
+    completed: { label: '已完成', color: 'green' }
+  };
+
+  const statusInfo = orderStatusConfig[order.status] || { label: order.status, color: 'gray' };
+
+  // 物流状态映射
+  const logisticsStatusConfig = {
+    preparing: { label: '备货中', color: 'bg-gray-100 text-gray-700', icon: 'package' },
+    shipped: { label: '已发货', color: 'bg-blue-100 text-blue-700', icon: 'local_shipping' },
+    in_transit: { label: '运输中', color: 'bg-orange-100 text-orange-700', icon: 'airport_shuttle' },
+    delivered: { label: '已送达', color: 'bg-green-100 text-green-700', icon: 'done_all' },
+    signed: { label: '已签收', color: 'bg-green-100 text-green-700', icon: 'check_circle' }
+  };
+
+  container.innerHTML = logisticsList.map(logistics => {
+    const logisticsStatus = logisticsStatusConfig[logistics.status] || { label: logistics.status, color: 'bg-gray-100 text-gray-700', icon: 'help' };
+
+    return `
+      <!-- 订单状态卡片 -->
+      <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-[#1F2421]">订单状态</h2>
+          <span class="px-3 py-1 bg-${statusInfo.color}-100 text-${statusInfo.color}-700 rounded-full text-sm font-medium">
+            ${statusInfo.label}
+          </span>
+        </div>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span class="text-[#5C635D]">订单编号</span>
+            <span class="text-[#1F2421] font-medium">${order.order_no}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-[#5C635D]">商品名称</span>
+            <span class="text-[#1F2421] font-medium">${order.gift_box_name}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 物流公司信息 -->
+      <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#C4612F] to-[#A94E22] flex items-center justify-center">
+            <span class="material-symbols-outlined text-white text-2xl">local_shipping</span>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="text-base font-semibold text-[#1F2421]">${logistics.logistics_company}</h3>
+              <span class="px-2 py-1 ${logisticsStatus.color} rounded-full text-xs font-medium">
+                ${logisticsStatus.label}
+              </span>
+            </div>
+            <p class="text-sm text-[#5C635D] mb-2">物流单号：${logistics.logistics_no}</p>
+            <button onclick="copyToClipboard('${logistics.logistics_no}')" class="text-xs text-[#C4612F] hover:underline">
+              复制
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <!-- 快递员信息 -->
+          <div class="p-3 bg-[#FBF9F5] rounded-xl">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#C4612F] text-lg">person</span>
+                <span class="text-sm font-medium text-[#1F2421]">快递员：${logistics.courier_name}</span>
+              </div>
+              <a href="tel:${logistics.courier_phone}" class="px-3 py-1 bg-[#C4612F] text-white rounded-full text-xs hover:bg-[#A94E22] transition-colors">
+                拨打电话
+              </a>
+            </div>
+            <div class="flex items-center gap-2 text-sm text-[#5C635D]">
+              <span class="material-symbols-outlined text-base">call</span>
+              <span>${logistics.courier_phone}</span>
+            </div>
+          </div>
+
+          <!-- 收货信息 -->
+          <div class="p-3 bg-[#FBF9F5] rounded-xl space-y-2">
+            <div class="flex items-start gap-2">
+              <span class="material-symbols-outlined text-[#5C635D] text-lg mt-0.5">location_on</span>
+              <div class="flex-1">
+                <p class="text-sm font-medium text-[#1F2421] mb-1">收货地址</p>
+                <p class="text-sm text-[#5C635D]">${logistics.receiver_address}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <span class="material-symbols-outlined text-[#5C635D] text-lg">person_outline</span>
+              <span class="text-[#1F2421]">${logistics.receiver_name}</span>
+              <span class="text-[#5C635D]">${logistics.receiver_phone}</span>
+            </div>
+          </div>
+
+          <!-- 收货方式 -->
+          <div class="flex items-center gap-2 p-3 bg-[#FBF9F5] rounded-xl">
+            <span class="material-symbols-outlined text-[#5C635D]">home</span>
+            <span class="text-sm text-[#1F2421]">收货方式：${logistics.delivery_method}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 物流详情 -->
+      <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+        <h3 class="text-base font-semibold text-[#1F2421] mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-[#C4612F]">timeline</span>
+          物流轨迹
+        </h3>
+
+        <div class="space-y-4">
+          ${logistics.tracking_details ? logistics.tracking_details.map((track, index) => {
+            const isFirst = index === 0;
+            const trackStatusConfig = {
+              delivered: { color: 'text-green-600', bgColor: 'bg-green-600', icon: 'check_circle' },
+              in_transit: { color: 'text-orange-600', bgColor: 'bg-orange-600', icon: 'local_shipping' },
+              shipped: { color: 'text-blue-600', bgColor: 'bg-blue-600', icon: 'inventory' }
+            };
+            const trackStatus = trackStatusConfig[track.status] || { color: 'text-gray-600', bgColor: 'bg-gray-600', icon: 'circle' };
+
+            return `
+              <div class="timeline-item flex gap-3">
+                <!-- 时间线圆点 -->
+                <div class="timeline-dot flex flex-col items-center">
+                  <div class="w-8 h-8 rounded-full ${isFirst ? trackStatus.bgColor : 'bg-[#E7E1D7]'} flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-white text-base" ${isFirst ? `style="font-variation-settings: 'FILL' 1, 'wght' 600"` : ''}>
+                      ${isFirst ? trackStatus.icon : 'circle'}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- 详情内容 -->
+                <div class="flex-1 pb-6">
+                  <p class="text-sm font-medium ${isFirst ? trackStatus.color : 'text-[#1F2421]'} mb-1">
+                    ${track.description}
+                  </p>
+                  <div class="flex items-center gap-3 text-xs text-[#5C635D]">
+                    <span>${track.time}</span>
+                    ${track.location ? `<span>• ${track.location}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('') : '<p class="text-sm text-[#5C635D] text-center py-4">暂无物流轨迹</p>'}
+        </div>
+      </div>
+
+      <!-- 客服联系 -->
+      <div class="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl border border-orange-100 p-5">
+        <div class="flex items-start gap-3">
+          <span class="material-symbols-outlined text-[#C4612F] text-2xl">support_agent</span>
+          <div class="flex-1">
+            <h4 class="text-sm font-semibold text-[#1F2421] mb-1">需要帮助？</h4>
+            <p class="text-xs text-[#5C635D] mb-3">如有物流问题，请联系客服或快递员</p>
+            <div class="flex gap-2">
+              <a href="tel:95554" class="px-4 py-2 bg-white border border-[#E7E1D7] rounded-xl text-xs text-[#1F2421] hover:border-[#C4612F] transition-colors">
+                物流客服 95554
+              </a>
+              <a href="tel:${logistics.courier_phone}" class="px-4 py-2 bg-[#C4612F] text-white rounded-xl text-xs hover:bg-[#A94E22] transition-colors">
+                联系快递员
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 复制到剪贴板
+function copyToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('已复制：' + text);
+    }).catch(() => {
+      fallbackCopy(text);
+    });
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    alert('已复制：' + text);
+  } catch (err) {
+    alert('复制失败，请手动复制：' + text);
+  }
+  document.body.removeChild(textarea);
+}
+</script>
+</body>
+</html>

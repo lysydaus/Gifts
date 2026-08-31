@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>收货地址 - 牧美满</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; letter-spacing: -0.02em; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+</style>
+<link rel="stylesheet" href="_mobile.css"/>
+</head>
+<body>
+
+<!-- 顶部 -->
+<div class="bg-white border-b border-[#E7E1D7] px-4 py-3 sticky top-0 z-40 flex items-center justify-between">
+  <div class="flex items-center gap-3">
+    <a href="profile.html" class="text-[#5C635D] hover:text-[#1F2421]">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </a>
+    <h1 class="text-lg font-semibold text-[#1F2421]">收货地址</h1>
+  </div>
+  <button onclick="openAddModal()" class="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm text-[#C4612F] hover:bg-[#FBF9F5] transition-colors">
+    <span class="material-symbols-outlined text-lg">add</span>
+    <span>新增</span>
+  </button>
+</div>
+
+<!-- 地址列表 -->
+<div class="px-4 py-6 pb-24" id="addressList">
+  <!-- 加载中 -->
+</div>
+
+<!-- 添加/编辑地址弹窗 -->
+<div id="editModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-3xl max-w-lg w-full p-8">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="heading text-2xl text-[#1F2421]" id="modalTitle">新增收货地址</h3>
+      <button onclick="closeEditModal()" class="text-[#5C635D] hover:text-[#1F2421]">✕</button>
+    </div>
+
+    <form onsubmit="saveAddress(event)" class="space-y-4">
+      <input type="hidden" id="editId"/>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">收货人 *</label>
+        <input type="text" id="editName" required
+               class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="请输入收货人姓名"/>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">联系电话 *</label>
+        <input type="tel" id="editPhone" required pattern="[0-9]{11}"
+               class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="请输入11位手机号"/>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">收货地址 *</label>
+        <textarea id="editAddress" required rows="3"
+                  class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+                  placeholder="请输入详细地址（省市区街道门牌号）"></textarea>
+      </div>
+
+      <div class="flex items-center gap-2 p-4 bg-[#FBF9F5] rounded-xl">
+        <input type="checkbox" id="editIsDefault"
+               class="w-5 h-5 rounded border-[#E7E1D7] text-[#C4612F] focus:ring-[#C4612F]"/>
+        <label for="editIsDefault" class="text-sm text-[#1F2421] cursor-pointer">设为默认地址</label>
+      </div>
+
+      <div class="flex gap-3 pt-4">
+        <button type="button" onclick="closeEditModal()"
+                class="flex-1 px-6 py-3 border border-[#E7E1D7] text-[#1F2421] rounded-full hover:bg-[#FBF9F5] transition-colors">
+          取消
+        </button>
+        <button type="submit"
+                class="flex-1 px-6 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full transition-colors">
+          保存
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="nav"></div>
+
+<script src="../db.js"></script>
+<script src="_nav.js"></script>
+<script>
+document.getElementById('nav').innerHTML = CustomerNav.render('profile');
+const customerId = getOrCreateCustomerId();
+
+function loadAddresses() {
+  const addresses = DB.getCustomerAddresses(customerId);
+  const container = document.getElementById('addressList');
+
+  if (addresses.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-12">
+        <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-[#FBF9F5] flex items-center justify-center">
+          <span class="material-symbols-outlined text-4xl text-[#5C635D]">location_off</span>
+        </div>
+        <p class="text-[#5C635D] mb-4">暂无收货地址</p>
+        <button onclick="openAddModal()"
+                class="px-6 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full transition-colors">
+          添加收货地址
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = addresses.map(addr => `
+    <div class="mb-4 p-5 bg-white rounded-2xl border border-[#E7E1D7] ${addr.is_default ? 'ring-2 ring-[#C4612F]' : ''}">
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="font-semibold text-[#1F2421]">${addr.receiver_name}</span>
+            <span class="text-sm text-[#5C635D]">${addr.receiver_phone}</span>
+            ${addr.is_default ? '<span class="px-2 py-0.5 bg-[#C4612F] text-white rounded-full text-xs">默认</span>' : ''}
+          </div>
+          <p class="text-sm text-[#5C635D] leading-relaxed">${addr.receiver_address}</p>
+        </div>
+      </div>
+      <div class="flex gap-3 pt-3 border-t border-[#E7E1D7]">
+        <button onclick="editAddress(${addr.id})"
+                class="text-sm text-[#C4612F] hover:text-[#A94E22] font-medium">
+          编辑
+        </button>
+        ${!addr.is_default ? `
+          <button onclick="setDefault(${addr.id})"
+                  class="text-sm text-[#5C635D] hover:text-[#1F2421] font-medium">
+            设为默认
+          </button>
+        ` : ''}
+        ${!addr.is_default ? `
+          <button onclick="deleteAddress(${addr.id})"
+                  class="text-sm text-red-600 hover:text-red-700 font-medium">
+            删除
+          </button>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function openAddModal() {
+  document.getElementById('modalTitle').textContent = '新增收货地址';
+  document.getElementById('editId').value = '';
+  document.getElementById('editName').value = '';
+  document.getElementById('editPhone').value = '';
+  document.getElementById('editAddress').value = '';
+  document.getElementById('editIsDefault').checked = false;
+  document.getElementById('editModal').classList.remove('hidden');
+}
+
+function editAddress(id) {
+  const addresses = DB.getCustomerAddresses(customerId);
+  const addr = addresses.find(a => a.id === id);
+  if (!addr) return;
+
+  document.getElementById('modalTitle').textContent = '编辑收货地址';
+  document.getElementById('editId').value = addr.id;
+  document.getElementById('editName').value = addr.receiver_name;
+  document.getElementById('editPhone').value = addr.receiver_phone;
+  document.getElementById('editAddress').value = addr.receiver_address;
+  document.getElementById('editIsDefault').checked = addr.is_default;
+  document.getElementById('editModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.add('hidden');
+}
+
+function saveAddress(event) {
+  event.preventDefault();
+
+  const id = document.getElementById('editId').value;
+  const data = {
+    customer_id: customerId,
+    receiver_name: document.getElementById('editName').value.trim(),
+    receiver_phone: document.getElementById('editPhone').value.trim(),
+    receiver_address: document.getElementById('editAddress').value.trim(),
+    is_default: document.getElementById('editIsDefault').checked
+  };
+
+  if (id) {
+    DB.updateCustomerAddress(parseInt(id), data);
+  } else {
+    DB.addCustomerAddress(data);
+  }
+
+  closeEditModal();
+  loadAddresses();
+}
+
+function setDefault(id) {
+  DB.updateCustomerAddress(id, { is_default: true });
+  loadAddresses();
+}
+
+function deleteAddress(id) {
+  if (!confirm('确认删除此收货地址吗？')) return;
+
+  try {
+    DB.deleteCustomerAddress(id);
+    loadAddresses();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+loadAddresses();
+</script>
+</body>
+</html>

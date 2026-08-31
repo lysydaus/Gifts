@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>我的礼卡 - 牧美满</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; letter-spacing: -0.02em; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .filter-btn { background: white; color: #5C635D; border: 1px solid #E7E1D7; }
+  .filter-btn.active { background: #C4612F; color: white; border-color: #C4612F; }
+</style>
+<link rel="stylesheet" href="_mobile.css"/>
+</head>
+<body>
+
+<!-- 顶部 -->
+<div class="bg-white border-b border-[#E7E1D7] px-4 py-3 sticky top-0 z-40 flex items-center justify-between">
+  <h1 class="text-lg font-semibold text-[#1F2421]">我的礼卡</h1>
+  <a href="add-card.html" class="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm text-[#C4612F] hover:bg-[#FBF9F5] transition-colors">
+    <span class="material-symbols-outlined text-lg">add</span>
+    <span>添加</span>
+  </a>
+</div>
+
+<!-- 主内容 -->
+<div class="px-4 py-6">
+  <!-- 我的礼卡列表 -->
+  <div class="mb-4">
+    <!-- 分类过滤按钮 -->
+    <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <button onclick="filterCards('all')" id="filter-all" class="filter-btn active px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all">
+        全部
+      </button>
+      <button onclick="filterCards('unused')" id="filter-unused" class="filter-btn px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all">
+        未使用
+      </button>
+      <button onclick="filterCards('redeemed')" id="filter-redeemed" class="filter-btn px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all">
+        已兑换
+      </button>
+      <button onclick="filterCards('used')" id="filter-used" class="filter-btn px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all">
+        已使用
+      </button>
+      <button onclick="filterCards('expired')" id="filter-expired" class="filter-btn px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all">
+        已过期
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-3" id="cardsList">
+    <!-- 动态加载 -->
+  </div>
+</div>
+
+<div id="nav"></div>
+
+<script src="../db.js"></script>
+<script src="_nav.js"></script>
+<script>
+document.getElementById('nav').innerHTML = CustomerNav.render('cards');
+const customerId = getOrCreateCustomerId();
+
+let currentFilter = 'all';
+
+// 判断卡片所属分类
+function getCardCategory(card) {
+  const isExpired = new Date(card.expire_at) < new Date();
+
+  if (card.status === 'used') return 'used';
+  if (isExpired || card.status === 'expired') return 'expired';
+  if (card.redeem_status === 'redeemed') return 'redeemed';
+  // active 且未兑换、未过期
+  return 'unused';
+}
+
+// 切换分类过滤
+function filterCards(category) {
+  currentFilter = category;
+
+  // 更新按钮激活状态
+  document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('filter-' + category).classList.add('active');
+
+  loadCards();
+}
+
+// 加载礼卡列表
+function loadCards() {
+  let cards = DB.getCards().filter(c => c.customer_id === customerId);
+  const cardTypes = DB._get('card_types');
+  const container = document.getElementById('cardsList');
+
+  // 按分类过滤
+  if (currentFilter !== 'all') {
+    cards = cards.filter(c => getCardCategory(c) === currentFilter);
+  }
+
+  // 按绑定时间倒序排列（最新绑定的在最前）
+  cards.sort((a, b) => {
+    const aTime = new Date(a.bound_at || 0);
+    const bTime = new Date(b.bound_at || 0);
+    return bTime - aTime;
+  });
+
+  if (cards.length === 0) {
+    const emptyMsg = currentFilter === 'all' ? '还没有礼卡，快去绑定吧' : '该分类下暂无礼卡';
+    container.innerHTML = `
+      <div class="text-center py-12">
+        <span class="material-symbols-outlined text-6xl text-[#E7E1D7] mb-3">card_giftcard</span>
+        <p class="text-[#5C635D]">${emptyMsg}</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = cards.map(card => {
+    const cardType = cardTypes.find(ct => ct.id === card.type_id);
+
+    const statusConfig = {
+      active: { label: '可用', color: 'green', bgColor: 'bg-green-50', textColor: 'text-green-700' },
+      used: { label: '已使用', color: 'gray', bgColor: 'bg-gray-50', textColor: 'text-gray-700' },
+      frozen: { label: '已冻结', color: 'orange', bgColor: 'bg-orange-50', textColor: 'text-orange-700' },
+      expired: { label: '已过期', color: 'red', bgColor: 'bg-red-50', textColor: 'text-red-700' }
+    }[card.status] || { label: card.status, color: 'gray', bgColor: 'bg-gray-50', textColor: 'text-gray-700' };
+
+    const isExpired = new Date(card.expire_at) < new Date();
+    const daysLeft = Math.ceil((new Date(card.expire_at) - new Date()) / (1000 * 60 * 60 * 24));
+
+    return `
+      <div class="bg-white rounded-2xl border border-[#E7E1D7] overflow-hidden">
+        <!-- 卡片头部 -->
+        <div class="relative h-32 bg-gradient-to-br from-[#D4AF62] via-[#C89B4A] to-[#A67C2E] p-4 flex flex-col justify-between">
+          <div class="flex items-start justify-between">
+            <p class="text-white/80 text-xs">牧美满礼卡</p>
+            <span class="px-2 py-0.5 ${statusConfig.bgColor} ${statusConfig.textColor} rounded-full text-xs font-medium">
+              ${statusConfig.label}
+            </span>
+          </div>
+          <div>
+            <p class="text-white text-base font-semibold font-mono break-all leading-snug">${card.card_no}</p>
+            <p class="text-white/80 text-xs mt-1">${cardType ? cardType.name : ''} · ¥${card.amount}</p>
+          </div>
+          <div class="absolute top-0 right-0 w-24 h-24 rounded-full bg-white/10 blur-2xl"></div>
+        </div>
+
+        <!-- 卡片信息 -->
+        <div class="px-4 py-3 text-xs">
+          ${card.status === 'active' && !isExpired ? `
+            <div class="flex items-center justify-between">
+              <span class="text-[#5C635D]">有效期至</span>
+              <span class="text-[#1F2421]">${new Date(card.expire_at).toLocaleDateString('zh-CN')}</span>
+            </div>
+          ` : `
+            <div class="flex items-center justify-between">
+              <span class="text-[#5C635D]">有效期至</span>
+              <span class="text-[#5C635D]">${new Date(card.expire_at).toLocaleDateString('zh-CN')}</span>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+loadCards();
+</script>
+</body>
+</html>

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>我的订单 - 牧美满</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; letter-spacing: -0.02em; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .filter-btn { background: white; color: #5C635D; border: 1px solid #E7E1D7; }
+  .filter-btn.active { background: #C4612F; color: white; border-color: #C4612F; }
+</style>
+<link rel="stylesheet" href="_mobile.css"/>
+</head>
+<body>
+
+<!-- 顶部 -->
+<div class="bg-white border-b border-[#E7E1D7] px-4 py-3 sticky top-0 z-40 flex items-center justify-between">
+  <h1 class="text-lg font-semibold text-[#1F2421]">我的订单</h1>
+  <a href="cart.html" class="relative w-9 h-9 rounded-full hover:bg-[#FBF9F5] flex items-center justify-center transition-colors">
+    <span class="material-symbols-outlined text-[#1F2421]">shopping_cart</span>
+    <span id="cartBadge" class="hidden absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-[#C4612F] text-white text-[10px] font-semibold rounded-full flex items-center justify-center"></span>
+  </a>
+</div>
+
+<!-- 主内容 -->
+<div class="px-4 py-6">
+  <!-- 分类筛选 -->
+  <div class="mb-4">
+    <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <button onclick="filterOrders('all')" id="filter-all" class="filter-btn active px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all">
+        全部
+      </button>
+      <button onclick="filterOrders('to_ship')" id="filter-to_ship" class="filter-btn px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all">
+        待发货
+      </button>
+      <button onclick="filterOrders('to_receive')" id="filter-to_receive" class="filter-btn px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all">
+        待收货
+      </button>
+      <button onclick="filterOrders('received')" id="filter-received" class="filter-btn px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all">
+        已收货
+      </button>
+      <button onclick="filterOrders('other')" id="filter-other" class="filter-btn px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all">
+        其他
+      </button>
+    </div>
+  </div>
+
+  <!-- 订单列表 -->
+  <div class="space-y-4" id="ordersList">
+    <!-- 动态加载 -->
+  </div>
+</div>
+
+<!-- 物流详情弹窗 -->
+<div id="logisticsModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-3xl max-w-md w-full max-h-[80vh] overflow-y-auto">
+    <div class="sticky top-0 bg-white border-b border-[#E7E1D7] p-6 flex items-center justify-between">
+      <h3 class="text-xl font-semibold text-[#1F2421]">物流详情</h3>
+      <button onclick="closeLogisticsModal()" class="w-8 h-8 rounded-full hover:bg-[#FBF9F5] flex items-center justify-center">
+        <span class="material-symbols-outlined text-[#1F2421]">close</span>
+      </button>
+    </div>
+    <div class="p-6" id="logisticsContent">
+      <!-- 动态加载 -->
+    </div>
+  </div>
+</div>
+
+<div id="nav"></div>
+
+<script src="../db.js"></script>
+<script src="_nav.js"></script>
+<script>
+document.getElementById('nav').innerHTML = CustomerNav.render('orders');
+const customerId = getOrCreateCustomerId();
+let currentFilter = 'all';
+
+// 更新购物车角标
+function updateCartBadge() {
+  const count = DB.getCart(customerId).length;
+  const badge = document.getElementById('cartBadge');
+  if (count > 0) {
+    badge.textContent = count;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+updateCartBadge();
+
+// 判断订单所属分类
+function getOrderCategory(order) {
+  // 其他：已取消、已拒绝
+  if (order.status === 'cancelled' || order.status === 'rejected') {
+    return 'other';
+  }
+  // 已收货：已完成
+  if (order.status === 'completed') {
+    return 'received';
+  }
+  // 待收货：已发货
+  if (order.status === 'shipped') {
+    return 'to_receive';
+  }
+  // 待发货：待审核、已通过、取消请求中
+  if (order.status === 'pending' || order.status === 'approved' || order.status === 'cancel_requested') {
+    return 'to_ship';
+  }
+  return 'other';
+}
+
+// 切换分类筛选
+function filterOrders(category) {
+  currentFilter = category;
+
+  // 更新按钮激活状态
+  document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('filter-' + category).classList.add('active');
+
+  loadOrders();
+}
+
+// 加载订单列表
+function loadOrders() {
+  let orders = DB.getOrders().filter(o => o.customer_id === customerId);
+  const giftBoxes = DB.getGiftBoxes();
+  const container = document.getElementById('ordersList');
+
+  // 按分类过滤
+  if (currentFilter !== 'all') {
+    orders = orders.filter(o => getOrderCategory(o) === currentFilter);
+  }
+
+  if (orders.length === 0) {
+    const emptyMsg = currentFilter === 'all' ? '还没有订单' : '该分类下暂无订单';
+    container.innerHTML = `
+      <div class="text-center py-12">
+        <span class="material-symbols-outlined text-6xl text-[#E7E1D7] mb-3">shopping_bag</span>
+        <p class="text-[#5C635D]">${emptyMsg}</p>
+      </div>
+    `;
+    return;
+  }
+
+  // 按创建时间倒序
+  orders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  container.innerHTML = orders.map(order => {
+    const box = giftBoxes.find(b => b.id === order.gift_box_id);
+    const orderLogistics = DB.getLogistics(order.id);
+    const logisticsOrderNo = orderLogistics[0] && orderLogistics[0].order_no;
+
+    const statusConfig = {
+      pending: { label: '待审核', color: 'blue', icon: 'schedule' },
+      approved: { label: '已通过', color: 'green', icon: 'check_circle' },
+      rejected: { label: '已拒绝', color: 'red', icon: 'cancel' },
+      shipped: { label: '已发货', color: 'purple', icon: 'local_shipping' },
+      completed: { label: '已完成', color: 'gray', icon: 'done_all' },
+      cancelled: { label: '已取消', color: 'gray', icon: 'close' },
+      cancel_requested: { label: '取消请求中', color: 'orange', icon: 'pending' }
+    }[order.status] || { label: order.status, color: 'gray', icon: 'help' };
+
+    return `
+      <div class="bg-white rounded-2xl border border-[#E7E1D7] overflow-hidden">
+        <!-- 订单头部 -->
+        <div class="px-4 py-3 bg-[#FBF9F5] border-b border-[#E7E1D7] flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-${statusConfig.color}-600 text-xl">${statusConfig.icon}</span>
+            <span class="text-sm font-medium text-[#1F2421]">${statusConfig.label}</span>
+          </div>
+          ${logisticsOrderNo ? `<span class="text-xs text-[#5C635D]">物流订单号: ${logisticsOrderNo}</span>` : ''}
+        </div>
+
+        <!-- 产品信息 -->
+        ${box ? `
+          <div class="p-4 border-b border-[#E7E1D7]">
+            <div class="flex gap-3">
+              ${box.images && box.images[0] ? `
+                <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-[#FBF9F5]">
+                  <img src="../${box.images[0]}" alt="${box.name}" class="w-full h-full object-cover"/>
+                </div>
+              ` : `
+                <div class="w-20 h-20 rounded-xl bg-[#FBF9F5] flex items-center justify-center flex-shrink-0">
+                  <span class="material-symbols-outlined text-3xl text-[#E7E1D7]">inventory_2</span>
+                </div>
+              `}
+              <div class="flex-1 min-w-0">
+                <h3 class="font-semibold text-[#1F2421] mb-1">${box.name}</h3>
+                <p class="text-sm text-[#5C635D] mb-2">${box.description}</p>
+                <p class="text-sm font-semibold text-[#C4612F]">¥${box.price}</p>
+              </div>
+              ${order.status === 'shipped' ? `
+                <div class="flex-shrink-0">
+                  <button onclick="confirmReceipt(${order.id})"
+                          class="px-4 py-2 bg-[#C4612F] text-white rounded-lg text-sm font-medium hover:bg-[#A0501F] transition-colors whitespace-nowrap">
+                    确认收货
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- 收货信息 -->
+        <div class="p-4 border-b border-[#E7E1D7]">
+          <div class="flex items-start gap-2 mb-2">
+            <span class="material-symbols-outlined text-[#5C635D] text-lg">location_on</span>
+            <div class="flex-1">
+              <p class="text-sm text-[#1F2421] mb-1">
+                <span class="font-medium">${order.receiver_name}</span>
+                <span class="ml-2 text-[#5C635D]">${order.receiver_phone}</span>
+              </p>
+              <p class="text-sm text-[#5C635D]">${order.receiver_address}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 订单信息 -->
+        <div class="p-4 space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span class="text-[#5C635D]">订单号</span>
+            <span class="text-[#1F2421] font-mono">${order.id}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-[#5C635D]">下单时间</span>
+            <span class="text-[#1F2421]">${new Date(order.created_at).toLocaleString('zh-CN')}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-[#5C635D]">使用礼卡</span>
+            <span class="text-[#1F2421] font-mono">${order.card_number}</span>
+          </div>
+          ${order.note ? `
+            <div class="flex justify-between">
+              <span class="text-[#5C635D]">备注</span>
+              <span class="text-[#1F2421]">${order.note}</span>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="p-4 pt-0">
+          ${order.status === 'shipped' || order.status === 'completed' ? `
+            <a href="logistics.html?order=${order.id}"
+                    class="block w-full px-4 py-3 border border-[#C4612F] text-[#C4612F] rounded-xl font-medium hover:bg-[#FBF9F5] transition-colors text-center">
+              查看物流
+            </a>
+          ` : order.status === 'pending' ? `
+            <button onclick="cancelOrder(${order.id})"
+                    class="w-full px-4 py-3 border border-[#E7E1D7] text-[#5C635D] rounded-xl font-medium hover:bg-[#FBF9F5] transition-colors">
+              取消订单
+            </button>
+          ` : order.status === 'cancel_requested' ? `
+            <div class="p-3 bg-orange-50 border border-orange-200 rounded-xl">
+              <p class="text-sm text-orange-800 text-center">
+                已提交取消请求，等待商家确认
+              </p>
+            </div>
+          ` : order.status === 'rejected' ? `
+            <div class="p-3 bg-red-50 border border-red-200 rounded-xl">
+              <p class="text-sm text-red-800">
+                <strong>拒绝原因:</strong> ${order.reject_reason || '未说明'}
+              </p>
+            </div>
+          ` : order.status === 'cancelled' ? `
+            <div class="p-3 bg-gray-50 border border-gray-200 rounded-xl">
+              <p class="text-sm text-gray-600 text-center">
+                ${order.status_note || '订单已取消'}
+              </p>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 查看物流
+function viewLogistics(orderId) {
+  const logistics = DB.getLogistics(orderId);
+
+  if (logistics.length === 0) {
+    alert('暂无物流信息');
+    return;
+  }
+
+  // 支持多个物流
+  const providers = DB._get('logistics_providers');
+
+  const content = `
+    <div class="space-y-4">
+      ${logistics.map((logistic, index) => {
+        const provider = providers.find(p => p.name === logistic.provider_name);
+
+        const statusConfig = {
+          preparing: { label: '备货中', color: 'blue', icon: 'inventory' },
+          shipped: { label: '已发货', color: 'purple', icon: 'local_shipping' },
+          in_transit: { label: '运输中', color: 'orange', icon: 'airport_shuttle' },
+          delivered: { label: '已送达', color: 'green', icon: 'home' },
+          signed: { label: '已签收', color: 'gray', icon: 'done_all' }
+        }[logistic.status] || { label: logistic.status, color: 'gray', icon: 'help' };
+
+        return `
+          ${index > 0 ? '<div class="border-t border-[#E7E1D7] my-4"></div>' : ''}
+
+          <!-- 物流状态 -->
+          <div class="p-4 bg-gradient-to-br from-[#C4612F] to-[#A94E22] rounded-2xl text-white">
+            <div class="flex items-center gap-3 mb-2">
+              <span class="material-symbols-outlined text-3xl">${statusConfig.icon}</span>
+              <div>
+                <p class="text-sm opacity-80">当前状态</p>
+                <p class="text-xl font-semibold">${statusConfig.label}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 物流信息 -->
+          <div class="p-4 bg-[#FBF9F5] rounded-2xl space-y-3 text-sm">
+            <div class="flex justify-between">
+              <span class="text-[#5C635D]">物流公司</span>
+              <span class="text-[#1F2421] font-medium">${logistic.provider_name}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-[#5C635D]">运单号</span>
+              <span class="text-[#1F2421] font-mono">${logistic.tracking_number}</span>
+            </div>
+            ${provider && provider.tracking_url ? `
+              <a href="${provider.tracking_url}${logistic.tracking_number}"
+                 target="_blank"
+                 class="block text-center px-4 py-2 bg-white border border-[#E7E1D7] text-[#C4612F] rounded-xl hover:bg-[#FBF9F5] transition-colors">
+                在线查询物流
+              </a>
+            ` : ''}
+          </div>
+
+          <!-- 物流进度 -->
+          ${logistic.shipped_at || logistic.delivered_at || logistic.signed_at ? `
+            <div class="space-y-3">
+              <h4 class="text-sm font-semibold text-[#1F2421]">物流进度</h4>
+              <div class="space-y-3">
+                ${logistic.signed_at ? `
+                  <div class="flex gap-3">
+                    <div class="flex flex-col items-center">
+                      <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-green-600 text-lg">done_all</span>
+                      </div>
+                      <div class="flex-1 w-px bg-[#E7E1D7] my-1"></div>
+                    </div>
+                    <div class="flex-1 pb-4">
+                      <p class="text-sm font-medium text-[#1F2421] mb-1">已签收</p>
+                      <p class="text-xs text-[#5C635D]">${new Date(logistic.signed_at).toLocaleString('zh-CN')}</p>
+                    </div>
+                  </div>
+                ` : ''}
+                ${logistic.delivered_at ? `
+                  <div class="flex gap-3">
+                    <div class="flex flex-col items-center">
+                      <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-green-600 text-lg">home</span>
+                      </div>
+                      ${!logistic.signed_at ? '<div class="flex-1 w-px bg-[#E7E1D7] my-1"></div>' : ''}
+                    </div>
+                    <div class="flex-1 ${!logistic.signed_at ? 'pb-4' : ''}">
+                      <p class="text-sm font-medium text-[#1F2421] mb-1">已送达</p>
+                      <p class="text-xs text-[#5C635D]">${new Date(logistic.delivered_at).toLocaleString('zh-CN')}</p>
+                    </div>
+                  </div>
+                ` : ''}
+                ${logistic.shipped_at ? `
+                  <div class="flex gap-3">
+                    <div class="flex flex-col items-center">
+                      <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-purple-600 text-lg">local_shipping</span>
+                      </div>
+                      ${!logistic.delivered_at ? '<div class="flex-1 w-px bg-[#E7E1D7] my-1"></div>' : ''}
+                    </div>
+                    <div class="flex-1 ${!logistic.delivered_at ? 'pb-4' : ''}">
+                      <p class="text-sm font-medium text-[#1F2421] mb-1">已发货</p>
+                      <p class="text-xs text-[#5C635D]">${new Date(logistic.shipped_at).toLocaleString('zh-CN')}</p>
+                    </div>
+                  </div>
+                ` : ''}
+                <div class="flex gap-3">
+                  <div class="flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                      <span class="material-symbols-outlined text-blue-600 text-lg">inventory</span>
+                    </div>
+                  </div>
+                  <div class="flex-1">
+                    <p class="text-sm font-medium text-[#1F2421] mb-1">备货中</p>
+                    <p class="text-xs text-[#5C635D]">${new Date(logistic.created_at).toLocaleString('zh-CN')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
+          ${logistic.status === 'delivered' && !logistic.signed_at ? `
+            <button onclick="confirmReceipt(${logistic.id})"
+                    class="w-full px-4 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full font-medium transition-colors">
+              确认收货
+            </button>
+          ` : ''}
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  document.getElementById('logisticsContent').innerHTML = content;
+  document.getElementById('logisticsModal').classList.remove('hidden');
+}
+
+function closeLogisticsModal() {
+  document.getElementById('logisticsModal').classList.add('hidden');
+}
+
+// 确认收货
+function confirmReceipt(orderIdOrLogisticId) {
+  if (!confirm('确认已收到货物？')) return;
+
+  // 判断是订单ID还是物流ID（从订单列表调用传订单ID，从物流弹窗调用传物流ID）
+  const orders = DB.getOrders();
+  const isOrderId = orders.some(o => o.id === orderIdOrLogisticId);
+
+  if (isOrderId) {
+    // 从订单列表确认收货：更新订单状态为completed
+    const result = DB.updateOrderStatus(orderIdOrLogisticId, 'completed');
+    if (result.success) {
+      alert('确认收货成功！');
+      loadOrders();
+    } else {
+      alert(result.message || '操作失败');
+    }
+  } else {
+    // 从物流弹窗确认收货：更新物流状态
+    const result = DB.updateLogisticsStatus(orderIdOrLogisticId, 'signed');
+    if (result.success) {
+      alert('确认成功！');
+      closeLogisticsModal();
+      loadOrders();
+    } else {
+      alert(result.message || '操作失败');
+    }
+  }
+}
+
+// 取消订单
+function cancelOrder(orderId) {
+  if (!confirm('确认取消此订单？取消请求将提交给商家审核，商家确认后礼卡会被释放。')) return;
+
+  const result = DB.requestCancelOrder(orderId, customerId);
+
+  if (result.success) {
+    alert(result.message);
+    loadOrders();
+  } else {
+    alert(result.message || '操作失败');
+  }
+}
+
+loadOrders();
+</script>
+</body>
+</html>

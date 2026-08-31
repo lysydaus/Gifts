@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>订单审核 - 商家后台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; }
+  .tab-btn { transition: all 0.2s; }
+  .tab-btn.active { background: #1F2421; color: white; }
+  .tab-btn:not(.active) { background: white; color: #5C635D; }
+  .tab-btn:not(.active):hover { background: #FBF9F5; color: #1F2421; }
+</style>
+</head>
+<body>
+
+<div class="max-w-7xl mx-auto px-6 py-6">
+
+  <!-- 页头 -->
+  <div class="mb-6">
+    <h2 class="heading text-3xl text-[#1F2421] mb-1">订单审核</h2>
+    <p class="text-[#5C635D] text-sm">查看礼品卡兑换订单，审核订单状态</p>
+  </div>
+
+  <!-- 统计卡片 -->
+  <div class="grid grid-cols-6 gap-3 mb-6">
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-4">
+      <p class="text-xs text-[#5C635D] mb-1">全部订单</p>
+      <p class="text-2xl font-semibold text-[#1F2421]" id="stat_all">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-4">
+      <p class="text-xs text-[#5C635D] mb-1">待审核</p>
+      <p class="text-2xl font-semibold text-orange-600" id="stat_pending">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-4">
+      <p class="text-xs text-[#5C635D] mb-1">已通过</p>
+      <p class="text-2xl font-semibold text-green-600" id="stat_approved">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-4">
+      <p class="text-xs text-[#5C635D] mb-1">已发货</p>
+      <p class="text-2xl font-semibold text-blue-600" id="stat_shipped">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-4">
+      <p class="text-xs text-[#5C635D] mb-1">已完成</p>
+      <p class="text-2xl font-semibold text-purple-600" id="stat_completed">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-4">
+      <p class="text-xs text-[#5C635D] mb-1">已拒绝/取消</p>
+      <p class="text-2xl font-semibold text-red-500" id="stat_cancelled">0</p>
+    </div>
+  </div>
+
+  <!-- 视图切换 tabs -->
+  <div class="flex gap-2 mb-5">
+    <button class="tab-btn active px-5 py-2 rounded-xl text-sm font-medium border border-[#E7E1D7]"
+            data-view="orders" onclick="switchView('orders')">全部订单</button>
+    <button class="tab-btn px-5 py-2 rounded-xl text-sm font-medium border border-[#E7E1D7]"
+            data-view="by-customer" onclick="switchView('by-customer')">按用户</button>
+    <button class="tab-btn px-5 py-2 rounded-xl text-sm font-medium border border-[#E7E1D7]"
+            data-view="by-giftbox" onclick="switchView('by-giftbox')">按礼盒</button>
+    <button class="tab-btn px-5 py-2 rounded-xl text-sm font-medium border border-[#E7E1D7]"
+            data-view="by-supplier" onclick="switchView('by-supplier')">按供应商</button>
+  </div>
+
+  <!-- 筛选栏（仅订单列表视图显示） -->
+  <div id="filterBar" class="bg-white rounded-2xl border border-[#E7E1D7] p-4 mb-5">
+    <div class="flex gap-3">
+      <input type="text" id="searchInput" placeholder="搜索订单礼盒号、客户姓名、手机号..."
+             class="flex-1 px-4 py-2 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F] text-sm"
+             oninput="renderOrdersView()"/>
+      <select id="statusFilter" onchange="renderOrdersView()"
+              class="px-4 py-2 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F] text-sm">
+        <option value="">全部状态</option>
+        <option value="pending">待审核</option>
+        <option value="approved">已通过</option>
+        <option value="rejected">已拒绝</option>
+        <option value="shipped">已发货</option>
+        <option value="completed">已完成</option>
+        <option value="cancelled">已取消</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 内容区 -->
+  <div id="mainContent"></div>
+</div>
+
+<!-- 订单详情弹窗 -->
+<div id="detailModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-3xl max-w-lg w-full p-8 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="heading text-2xl text-[#1F2421]">订单详情</h3>
+      <button onclick="closeModal('detailModal')" class="text-[#5C635D] hover:text-[#1F2421] text-xl">✕</button>
+    </div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- 审核弹窗 -->
+<div id="reviewModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-3xl max-w-md w-full p-8">
+    <h3 class="heading text-2xl text-[#1F2421] mb-6" id="reviewTitle">审核订单</h3>
+    <input type="hidden" id="reviewOrderId"/>
+    <input type="hidden" id="reviewAction"/>
+    <div class="mb-5">
+      <label class="block text-sm font-medium text-[#1F2421] mb-2">备注说明（选填）</label>
+      <textarea id="reviewNote" rows="3"
+                class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F] text-sm"
+                placeholder="请输入审核说明..."></textarea>
+    </div>
+    <div class="flex gap-3">
+      <button onclick="closeModal('reviewModal')"
+              class="flex-1 px-4 py-3 border border-[#E7E1D7] text-[#1F2421] rounded-full hover:bg-[#FBF9F5] text-sm">
+        取消
+      </button>
+      <button id="reviewConfirmBtn" onclick="submitReview()"
+              class="flex-1 px-4 py-3 rounded-full text-white text-sm">
+        确认
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="../db.js"></script>
+<script>
+const user = DB.getCurrentUser();
+if (!user || user.role !== 'merchant') {
+  window.location.href = 'login.html';
+}
+
+let currentView = 'orders';
+
+const STATUS_CONFIG = {
+  pending:          { label: '待审核',    bg: 'bg-orange-100', text: 'text-orange-700' },
+  cancel_requested: { label: '待确认取消', bg: 'bg-amber-100',  text: 'text-amber-700' },
+  approved:         { label: '已通过',    bg: 'bg-green-100',  text: 'text-green-700' },
+  rejected:         { label: '已拒绝',    bg: 'bg-red-100',    text: 'text-red-700' },
+  shipped:          { label: '已发货',    bg: 'bg-blue-100',   text: 'text-blue-700' },
+  completed:        { label: '已完成',    bg: 'bg-purple-100', text: 'text-purple-700' },
+  cancelled:        { label: '已取消',    bg: 'bg-gray-100',   text: 'text-gray-700' }
+};
+
+function statusBadge(status) {
+  const c = STATUS_CONFIG[status] || { label: status, bg: 'bg-gray-100', text: 'text-gray-700' };
+  return `<span class="px-2.5 py-0.5 ${c.bg} ${c.text} rounded-full text-xs font-medium">${c.label}</span>`;
+}
+
+function updateStats() {
+  const all = DB.getOrders();
+  document.getElementById('stat_all').textContent = all.length;
+  const pendingCount = all.filter(o => o.status === 'pending').length;
+  const cancelReqCount = all.filter(o => o.status === 'cancel_requested').length;
+  document.getElementById('stat_pending').textContent = cancelReqCount > 0 ? `${pendingCount}+${cancelReqCount}` : pendingCount;
+  document.getElementById('stat_approved').textContent  = all.filter(o => o.status === 'approved').length;
+  document.getElementById('stat_shipped').textContent   = all.filter(o => o.status === 'shipped').length;
+  document.getElementById('stat_completed').textContent = all.filter(o => o.status === 'completed').length;
+  document.getElementById('stat_cancelled').textContent = all.filter(o => o.status === 'cancelled' || o.status === 'rejected').length;
+}
+
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === view);
+  });
+  // 筛选栏只在订单列表视图显示
+  document.getElementById('filterBar').style.display = view === 'orders' ? '' : 'none';
+  renderView();
+}
+
+function renderView() {
+  updateStats();
+  if (currentView === 'orders')          renderOrdersView();
+  else if (currentView === 'by-customer') renderByCustomer();
+  else if (currentView === 'by-giftbox')  renderByGiftbox();
+  else if (currentView === 'by-supplier') renderBySupplier();
+}
+
+// ── 视图1：全部订单列表 ───────────────────────────────────────
+
+function renderOrdersView() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const statusF = document.getElementById('statusFilter').value;
+
+  const groups = DB.getOrderGroups();
+  const allOrders = DB.getOrders();
+
+  // 组装每个父订单及其子项
+  let cards = groups.map(g => {
+    const items = allOrders.filter(o => o.group_id === g.id);
+    return { group: g, items };
+  });
+
+  // 兼容：没有 group_id 的散单，各自成组
+  const grouped = new Set(cards.flatMap(c => c.items.map(i => i.id)));
+  allOrders.filter(o => !grouped.has(o.id)).forEach(o => {
+    cards.push({ group: null, items: [o] });
+  });
+
+  // 状态筛选：父订单聚合状态 或 任一子项匹配
+  if (statusF) {
+    cards = cards.filter(c => {
+      const gs = c.group ? DB.calcGroupStatus(c.items) : c.items[0].status;
+      return gs === statusF || c.items.some(i => i.status === statusF);
+    });
+  }
+
+  // 搜索：匹配订单号、客户、手机、收货人
+  if (search) {
+    cards = cards.filter(c => {
+      const g = c.group || {};
+      const hay = [
+        g.group_no, g.customer_name, g.customer_phone, g.receiver_name,
+        ...c.items.flatMap(i => [i.order_no, i.customer_name, i.customer_phone, i.receiver_name])
+      ].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(search);
+    });
+  }
+
+  // 按创建时间倒序
+  cards.sort((a, b) => {
+    const ta = a.group ? a.group.created_at : a.items[0].created_at;
+    const tb = b.group ? b.group.created_at : b.items[0].created_at;
+    return new Date(tb) - new Date(ta);
+  });
+
+  const container = document.getElementById('mainContent');
+  if (cards.length === 0) {
+    container.innerHTML = emptyState('暂无订单');
+    return;
+  }
+
+  container.innerHTML = `<div class="space-y-4">${cards.map(groupCard).join('')}</div>`;
+}
+
+function groupCard({ group, items }) {
+  // 父订单聚合信息
+  const g = group || {
+    group_no: items[0].order_no,
+    customer_name: items[0].customer_name,
+    customer_phone: items[0].customer_phone,
+    receiver_name: items[0].receiver_name,
+    receiver_phone: items[0].receiver_phone,
+    receiver_address: items[0].receiver_address || items[0].address,
+    created_at: items[0].created_at,
+    note: items[0].note
+  };
+  const groupStatus = group ? DB.calcGroupStatus(items) : items[0].status;
+  const total = items.reduce((s, o) => s + (o.gift_box_price || 0), 0);
+  const pendingCount = items.filter(o => o.status === 'pending').length;
+  const isMulti = items.length > 1;
+
+  // 整单可操作：全部子项都待审核时，可整单通过/拒绝
+  // 注释掉批量操作：一个订单组就是一个订单，不需要批量按钮
+  const allPending = false; // items.length > 0 && items.every(o => o.status === 'pending');
+
+  return `
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] overflow-hidden">
+      <!-- 父订单头 -->
+      <div class="flex items-start justify-between p-5 bg-[#FBF9F5] border-b border-[#E7E1D7]">
+        <div>
+          <div class="flex items-center gap-3 mb-1.5">
+            <span class="font-mono text-sm font-semibold text-[#1F2421]">${g.group_no}</span>
+            ${statusBadge(groupStatus === 'partial' ? 'pending' : groupStatus)}
+            ${groupStatus === 'partial' ? '<span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs">部分处理</span>' : ''}
+            <span class="px-2 py-0.5 bg-[#E7E1D7] text-[#5C635D] rounded-full text-xs">${items.length} 件礼盒</span>
+          </div>
+          <p class="text-xs text-[#5C635D]">
+            ${g.customer_name || '-'} · ${g.customer_phone || ''} · 下单于 ${new Date(g.created_at).toLocaleString('zh-CN')}
+          </p>
+          <p class="text-xs text-[#5C635D] mt-0.5">收货：${g.receiver_name || g.customer_name || '-'} ${g.receiver_phone || ''}，${g.receiver_address || '-'}</p>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-[#5C635D]">合计</p>
+          <p class="font-semibold text-[#C4612F]">¥${total.toLocaleString()}</p>
+        </div>
+      </div>
+
+      <!-- 子项列表 -->
+      <div class="divide-y divide-[#E7E1D7]">
+        ${items.map(itemRow).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function itemRow(order) {
+  const giftBox = DB.getGiftBox(order.gift_box_id);
+  return `
+    <div class="flex items-center justify-between px-5 py-3.5 hover:bg-[#FBF9F5] transition-colors">
+      <div class="flex items-center gap-4 text-sm min-w-0">
+        <span class="font-mono text-xs text-[#5C635D] shrink-0">${order.order_no}</span>
+        <span class="text-[#1F2421] font-medium truncate">${giftBox ? giftBox.name : (order.gift_box_name || '-')}</span>
+        <span class="font-semibold text-[#C4612F] shrink-0">¥${order.gift_box_price || (giftBox ? giftBox.price : 0)}</span>
+        ${order.card_number ? `<span class="font-mono text-xs text-[#5C635D] shrink-0 hidden sm:inline">卡号 ${order.card_number}</span>` : ''}
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        ${statusBadge(order.status)}
+        <button onclick="viewOrder(${order.id})" class="w-12 text-xs text-[#C4612F] hover:text-[#A94E22]">详情</button>
+        ${order.status === 'pending' ? `
+          <button onclick="openReview(${order.id}, 'approved')"
+                  class="w-12 text-xs text-green-600 hover:text-green-700 font-medium">通过</button>
+          <button onclick="openReview(${order.id}, 'rejected')"
+                  class="w-12 text-xs text-red-600 hover:text-red-700 font-medium">拒绝</button>
+        ` : order.status === 'cancel_requested' ? `
+          <button onclick="openCancelReview(${order.id}, true)"
+                  class="text-xs text-green-600 hover:text-green-700 font-medium whitespace-nowrap">同意取消</button>
+          <button onclick="openCancelReview(${order.id}, false)"
+                  class="text-xs text-red-600 hover:text-red-700 font-medium whitespace-nowrap">驳回</button>
+        ` : order.status === 'approved' ? `
+          <a href="logistics.html?order=${order.id}" class="w-12 text-xs text-blue-600 hover:text-blue-700 font-medium">发货</a>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+// 整单审核：对组内每个子项应用同一操作
+function reviewGroup(ids, action) {
+  const label = action === 'approved' ? '通过' : '拒绝';
+  if (!confirm(`确认${label}该订单下全部 ${ids.length} 件礼盒？`)) return;
+  try {
+    ids.forEach(id => DB.updateOrderStatus(id, action, ''));
+    renderView();
+  } catch (err) {
+    alert('操作失败：' + err.message);
+  }
+}
+
+// ── 视图2：按用户分组 ─────────────────────────────────────────
+
+function renderByCustomer() {
+  const orders = DB.getOrders();
+  // 按 customer_name + phone 分组
+  const groups = {};
+  orders.forEach(o => {
+    const key = `${o.customer_name}__${o.customer_phone}`;
+    if (!groups[key]) {
+      groups[key] = { name: o.customer_name || '-', phone: o.customer_phone || '-', orders: [] };
+    }
+    groups[key].orders.push(o);
+  });
+
+  const list = Object.values(groups).sort((a, b) => b.orders.length - a.orders.length);
+
+  if (list.length === 0) {
+    document.getElementById('mainContent').innerHTML = emptyState('暂无订单数据');
+    return;
+  }
+
+  document.getElementById('mainContent').innerHTML = list.map(g => {
+    const total = g.orders.reduce((s, o) => s + (o.gift_box_price || 0), 0);
+    const pendingCount = g.orders.filter(o => o.status === 'pending').length;
+    return `
+      <div class="bg-white rounded-2xl border border-[#E7E1D7] mb-4 overflow-hidden">
+        <div class="flex items-center justify-between p-5 border-b border-[#E7E1D7] bg-[#FBF9F5]">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-[#F2E3D6] flex items-center justify-center text-[#C4612F] font-semibold">
+              ${(g.name || '?')[0]}
+            </div>
+            <div>
+              <p class="font-semibold text-[#1F2421]">${g.name}</p>
+              <p class="text-xs text-[#5C635D]">${g.phone}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-6 text-sm">
+            <div class="text-right">
+              <p class="text-xs text-[#5C635D]">礼盒数</p>
+              <p class="font-semibold text-[#1F2421]">${g.orders.length}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-[#5C635D]">累计金额</p>
+              <p class="font-semibold text-[#C4612F]">¥${total.toLocaleString()}</p>
+            </div>
+            ${pendingCount > 0 ? `
+              <span class="px-2.5 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
+                待审核 ${pendingCount}
+              </span>` : ''}
+          </div>
+        </div>
+        <div class="divide-y divide-[#E7E1D7]">
+          ${g.orders.map(o => customerOrderRow(o)).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function customerOrderRow(order) {
+  const giftBox = DB.getGiftBox(order.gift_box_id);
+  return `
+    <div class="flex items-center justify-between px-5 py-3 hover:bg-[#FBF9F5] transition-colors">
+      <div class="flex items-center gap-4 text-sm">
+        <span class="font-mono text-xs text-[#5C635D]">${order.order_no}</span>
+        <span class="text-[#1F2421]">${giftBox ? giftBox.name : (order.gift_box_name || '-')}</span>
+        <span class="font-semibold text-[#C4612F]">¥${order.gift_box_price || 0}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-[#5C635D]">${new Date(order.created_at).toLocaleDateString('zh-CN')}</span>
+        ${statusBadge(order.status)}
+        <button onclick="viewOrder(${order.id})" class="w-12 text-xs text-[#C4612F] hover:text-[#A94E22]">详情</button>
+        ${order.status === 'pending' ? `
+          <button onclick="openReview(${order.id}, 'approved')"
+                  class="w-12 text-xs text-green-600 hover:text-green-700 font-medium">通过</button>
+          <button onclick="openReview(${order.id}, 'rejected')"
+                  class="w-12 text-xs text-red-600 hover:text-red-700 font-medium">拒绝</button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+// ── 视图3：按礼盒分组 ─────────────────────────────────────────
+
+function renderByGiftbox() {
+  const orders = DB.getOrders();
+  const groups = {};
+  orders.forEach(o => {
+    const key = o.gift_box_id;
+    if (!groups[key]) {
+      const box = DB.getGiftBox(o.gift_box_id);
+      groups[key] = {
+        id: key,
+        name: o.gift_box_name || (box ? box.name : '-'),
+        price: o.gift_box_price || (box ? box.price : 0),
+        orders: []
+      };
+    }
+    groups[key].orders.push(o);
+  });
+
+  const list = Object.values(groups).sort((a, b) => b.orders.length - a.orders.length);
+
+  if (list.length === 0) {
+    document.getElementById('mainContent').innerHTML = emptyState('暂无订单数据');
+    return;
+  }
+
+  document.getElementById('mainContent').innerHTML = list.map(g => {
+    const pendingCount = g.orders.filter(o => o.status === 'pending').length;
+    const completedCount = g.orders.filter(o => o.status === 'completed').length;
+    return `
+      <div class="bg-white rounded-2xl border border-[#E7E1D7] mb-4 overflow-hidden">
+        <div class="flex items-center justify-between p-5 border-b border-[#E7E1D7] bg-[#FBF9F5]">
+          <div>
+            <p class="font-semibold text-[#1F2421]">${g.name}</p>
+            <p class="text-sm text-[#C4612F] font-semibold">¥${g.price}</p>
+          </div>
+          <div class="flex items-center gap-6 text-sm">
+            <div class="text-right">
+              <p class="text-xs text-[#5C635D]">兑换次数</p>
+              <p class="font-semibold text-[#1F2421]">${g.orders.length}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-[#5C635D]">已完成</p>
+              <p class="font-semibold text-purple-600">${completedCount}</p>
+            </div>
+            ${pendingCount > 0 ? `
+              <span class="px-2.5 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
+                待审核 ${pendingCount}
+              </span>` : ''}
+          </div>
+        </div>
+        <div class="divide-y divide-[#E7E1D7]">
+          ${g.orders.map(o => giftboxOrderRow(o)).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function giftboxOrderRow(order) {
+  return `
+    <div class="flex items-center justify-between px-5 py-3 hover:bg-[#FBF9F5] transition-colors">
+      <div class="flex items-center gap-4 text-sm">
+        <span class="font-mono text-xs text-[#5C635D]">${order.order_no}</span>
+        <span class="font-medium text-[#1F2421]">${order.customer_name || '-'}</span>
+        <span class="text-xs text-[#5C635D]">${order.customer_phone || ''}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-[#5C635D]">${new Date(order.created_at).toLocaleDateString('zh-CN')}</span>
+        ${statusBadge(order.status)}
+        <button onclick="viewOrder(${order.id})" class="w-12 text-xs text-[#C4612F] hover:text-[#A94E22]">详情</button>
+        ${order.status === 'pending' ? `
+          <button onclick="openReview(${order.id}, 'approved')"
+                  class="w-12 text-xs text-green-600 hover:text-green-700 font-medium">通过</button>
+          <button onclick="openReview(${order.id}, 'rejected')"
+                  class="w-12 text-xs text-red-600 hover:text-red-700 font-medium">拒绝</button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+// ── 视图4：按供应商分组 ───────────────────────────────────────
+
+function renderBySupplier() {
+  const orders = DB.getOrders();
+  const categories = DB._get('product_categories');
+  const suppliers = DB._get('suppliers');
+
+  // category_id → supplier
+  const catSupMap = {};
+  suppliers.forEach(s => { catSupMap[s.category_id] = s; });
+
+  const groups = {};
+  orders.forEach(o => {
+    const sup = catSupMap[o.category_id];
+    const key = sup ? sup.id : 'unknown';
+    if (!groups[key]) {
+      const cat = categories.find(c => c.id === o.category_id);
+      groups[key] = {
+        id: key,
+        supplierName: sup ? sup.name : '未知供应商',
+        contactPerson: sup ? (sup.contact_person || '') : '',
+        phone: sup ? (sup.phone || '') : '',
+        categoryName: cat ? cat.name : '-',
+        orders: []
+      };
+    }
+    groups[key].orders.push(o);
+  });
+
+  const list = Object.values(groups).sort((a, b) => b.orders.length - a.orders.length);
+
+  if (list.length === 0) {
+    document.getElementById('mainContent').innerHTML = emptyState('暂无订单数据');
+    return;
+  }
+
+  document.getElementById('mainContent').innerHTML = list.map(g => {
+    const totalAmt = g.orders.reduce((s, o) => s + (o.gift_box_price || 0), 0);
+    const pendingCount = g.orders.filter(o => o.status === 'pending').length;
+    const completedCount = g.orders.filter(o => o.status === 'completed').length;
+    return `
+      <div class="bg-white rounded-2xl border border-[#E7E1D7] mb-4 overflow-hidden">
+        <div class="flex items-center justify-between p-5 border-b border-[#E7E1D7] bg-[#FBF9F5]">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-[#F2E3D6] flex items-center justify-center text-[#C4612F] text-lg">
+              🏭
+            </div>
+            <div>
+              <p class="font-semibold text-[#1F2421]">${g.supplierName}</p>
+              <p class="text-xs text-[#5C635D]">${g.categoryName}${g.contactPerson ? ' · 联系人：' + g.contactPerson : ''}${g.phone ? ' ' + g.phone : ''}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-6 text-sm">
+            <div class="text-right">
+              <p class="text-xs text-[#5C635D]">订单数</p>
+              <p class="font-semibold text-[#1F2421]">${g.orders.length}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-[#5C635D]">累计金额</p>
+              <p class="font-semibold text-[#C4612F]">¥${totalAmt.toLocaleString()}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-[#5C635D]">已完成</p>
+              <p class="font-semibold text-purple-600">${completedCount}</p>
+            </div>
+            ${pendingCount > 0 ? `
+              <span class="px-2.5 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
+                待审核 ${pendingCount}
+              </span>` : ''}
+          </div>
+        </div>
+        <div class="divide-y divide-[#E7E1D7]">
+          ${g.orders.map(o => supplierOrderRow(o)).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function supplierOrderRow(order) {
+  const giftBox = DB.getGiftBox(order.gift_box_id);
+  return `
+    <div class="flex items-center justify-between px-5 py-3 hover:bg-[#FBF9F5] transition-colors">
+      <div class="flex items-center gap-4 text-sm">
+        <span class="font-mono text-xs text-[#5C635D]">${order.order_no}</span>
+        <span class="font-medium text-[#1F2421]">${order.customer_name || '-'}</span>
+        <span class="text-[#5C635D]">${giftBox ? giftBox.name : (order.gift_box_name || '-')}</span>
+        <span class="font-semibold text-[#C4612F]">¥${order.gift_box_price || 0}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-[#5C635D]">${new Date(order.created_at).toLocaleDateString('zh-CN')}</span>
+        ${statusBadge(order.status)}
+        <button onclick="viewOrder(${order.id})" class="w-12 text-xs text-[#C4612F] hover:text-[#A94E22]">详情</button>
+        ${order.status === 'pending' ? `
+          <button onclick="openReview(${order.id}, 'approved')"
+                  class="w-12 text-xs text-green-600 hover:text-green-700 font-medium">通过</button>
+          <button onclick="openReview(${order.id}, 'rejected')"
+                  class="w-12 text-xs text-red-600 hover:text-red-700 font-medium">拒绝</button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+// ── 订单详情弹窗 ──────────────────────────────────────────────
+
+function viewOrder(id) {
+  const orders = DB.getOrders();
+  const order = orders.find(o => o.id === id);
+  if (!order) return;
+
+  const giftBox = DB.getGiftBox(order.gift_box_id);
+  const sc = STATUS_CONFIG[order.status] || STATUS_CONFIG.cancelled;
+
+  document.getElementById('detailContent').innerHTML = `
+    <div class="space-y-4 text-sm">
+      <div class="flex items-center justify-between p-3 bg-[#FBF9F5] rounded-xl">
+        <span class="font-mono text-[#1F2421] font-semibold">${order.order_no}</span>
+        ${statusBadge(order.status)}
+      </div>
+
+      <div class="p-4 border border-[#E7E1D7] rounded-xl space-y-2">
+        <p class="text-xs font-semibold text-[#5C635D] uppercase tracking-wide mb-2">客户信息</p>
+        <div class="flex justify-between"><span class="text-[#5C635D]">姓名</span><span class="font-medium text-[#1F2421]">${order.customer_name || '-'}</span></div>
+        <div class="flex justify-between"><span class="text-[#5C635D]">电话</span><span class="text-[#1F2421]">${order.customer_phone || '-'}</span></div>
+        <div class="flex justify-between"><span class="text-[#5C635D]">收货人</span><span class="text-[#1F2421]">${order.receiver_name || order.customer_name || '-'}</span></div>
+        <div class="flex justify-between"><span class="text-[#5C635D]">收货电话</span><span class="text-[#1F2421]">${order.receiver_phone || '-'}</span></div>
+        <div class="flex justify-between"><span class="text-[#5C635D]">收货地址</span><span class="text-[#1F2421] text-right max-w-[200px]">${order.receiver_address || order.address || '-'}</span></div>
+      </div>
+
+      <div class="p-4 border border-[#E7E1D7] rounded-xl space-y-2">
+        <p class="text-xs font-semibold text-[#5C635D] uppercase tracking-wide mb-2">兑换产品</p>
+        <div class="flex justify-between"><span class="text-[#5C635D]">礼盒</span><span class="font-medium text-[#1F2421]">${giftBox ? giftBox.name : (order.gift_box_name || '-')}</span></div>
+        ${giftBox && giftBox.weight ? `<div class="flex justify-between"><span class="text-[#5C635D]">重量</span><span class="text-[#1F2421]">${giftBox.weight}</span></div>` : ''}
+        <div class="flex justify-between"><span class="text-[#5C635D]">金额</span><span class="font-semibold text-[#C4612F]">¥${order.gift_box_price || (giftBox ? giftBox.price : 0)}</span></div>
+        <div class="flex justify-between"><span class="text-[#5C635D]">礼卡号</span><span class="font-mono text-[#1F2421]">${order.card_number || '-'}</span></div>
+      </div>
+
+      ${order.status === 'pending' ? (() => {
+        const inspection = DB.inspectOrderCard(order.id);
+        if (!inspection) return '';
+
+        const allPass = inspection.ok;
+        const borderColor = allPass ? 'border-green-200' : 'border-red-200';
+        const bgColor = allPass ? 'bg-green-50' : 'bg-red-50';
+        const titleColor = allPass ? 'text-green-700' : 'text-red-700';
+        const statusIcon = allPass ? '✓' : '✗';
+
+        return `
+          <div class="p-4 border ${borderColor} ${bgColor} rounded-xl space-y-3">
+            <p class="text-xs font-semibold ${titleColor} uppercase tracking-wide flex items-center gap-1.5">
+              <span class="text-base">${statusIcon}</span>
+              礼卡核验
+            </p>
+            ${inspection.checks.map(chk => `
+              <div class="flex items-start justify-between text-xs">
+                <span class="text-[#5C635D]">${chk.label}</span>
+                <span class="text-right ${chk.pass ? 'text-green-700' : 'text-red-700'} font-medium max-w-[200px]">
+                  ${chk.pass ? '✓' : '✗'} ${chk.detail}
+                </span>
+              </div>
+            `).join('')}
+            ${inspection.enteredPwd != null ? `
+              <div class="flex items-center justify-between text-xs pt-2 border-t border-current/10">
+                <span class="text-[#5C635D]">客户填写密码</span>
+                <span class="font-mono text-[#1F2421]">${inspection.enteredPwd}</span>
+              </div>
+            ` : ''}
+            ${!allPass && inspection.issues.length > 0 ? `
+              <div class="pt-2 border-t border-current/10">
+                <p class="text-xs font-semibold text-red-700 mb-1">问题汇总</p>
+                <p class="text-xs text-red-600">${inspection.issues.join('、')}</p>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      })() : ''}
+
+      <div class="p-4 border border-[#E7E1D7] rounded-xl space-y-2">
+        <p class="text-xs font-semibold text-[#5C635D] uppercase tracking-wide mb-2">订单时间</p>
+        <div class="flex justify-between"><span class="text-[#5C635D]">下单时间</span><span class="text-[#1F2421]">${new Date(order.created_at).toLocaleString('zh-CN')}</span></div>
+        ${order.updated_at ? `<div class="flex justify-between"><span class="text-[#5C635D]">更新时间</span><span class="text-[#1F2421]">${new Date(order.updated_at).toLocaleString('zh-CN')}</span></div>` : ''}
+      </div>
+
+      ${order.note ? `<div class="p-3 bg-[#FBF9F5] rounded-xl"><p class="text-xs text-[#5C635D] mb-1">客户备注</p><p class="text-[#1F2421]">${order.note}</p></div>` : ''}
+      ${order.status_note ? `<div class="p-3 bg-yellow-50 border border-yellow-200 rounded-xl"><p class="text-xs text-yellow-700 mb-1">审核备注</p><p class="text-[#1F2421]">${order.status_note}</p></div>` : ''}
+    </div>
+
+    ${order.status === 'pending' ? `
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeModal('detailModal'); openReview(${order.id}, 'approved')"
+                class="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-full text-sm font-medium transition-colors">
+          通过审核
+        </button>
+        <button onclick="closeModal('detailModal'); openReview(${order.id}, 'rejected')"
+                class="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-medium transition-colors">
+          拒绝
+        </button>
+      </div>
+    ` : order.status === 'approved' ? `
+      <div class="mt-6">
+        <a href="logistics.html?order=${order.id}"
+           class="block text-center py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium transition-colors">
+          安排发货 →
+        </a>
+      </div>
+    ` : ''}
+  `;
+
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+
+// ── 审核操作 ──────────────────────────────────────────────────
+
+function openReview(orderId, action) {
+  document.getElementById('reviewOrderId').value = orderId;
+  document.getElementById('reviewAction').value = action;
+  document.getElementById('reviewNote').value = '';
+
+  const titleMap = { approved: '通过审核', rejected: '拒绝订单', cancelled: '取消订单' };
+  const colorMap  = {
+    approved:  'bg-green-600 hover:bg-green-700',
+    rejected:  'bg-red-600 hover:bg-red-700',
+    cancelled: 'bg-gray-600 hover:bg-gray-700'
+  };
+  document.getElementById('reviewTitle').textContent = titleMap[action] || '操作订单';
+  document.getElementById('reviewConfirmBtn').className =
+    `flex-1 px-4 py-3 rounded-full text-white text-sm ${colorMap[action] || 'bg-[#1F2421]'}`;
+  document.getElementById('reviewConfirmBtn').textContent = titleMap[action] || '确认';
+
+  document.getElementById('reviewModal').classList.remove('hidden');
+}
+
+function submitReview() {
+  const id     = parseInt(document.getElementById('reviewOrderId').value);
+  const action = document.getElementById('reviewAction').value;
+  const note   = document.getElementById('reviewNote').value;
+
+  try {
+    DB.updateOrderStatus(id, action, note);
+    closeModal('reviewModal');
+    renderView();
+  } catch (err) {
+    alert('操作失败：' + err.message);
+  }
+}
+
+// ── 取消请求处理 ──────────────────────────────────────────────
+
+function openCancelReview(orderId, approve) {
+  const order = DB.getOrders().find(o => o.id === orderId);
+  if (!order) return;
+
+  if (approve) {
+    if (!confirm(`确认同意取消订单 ${order.order_no}？\n\n取消后该订单占用的礼卡将被释放，可重新使用。`)) return;
+  } else {
+    if (!confirm(`确认驳回订单 ${order.order_no} 的取消请求？\n\n驳回后订单将恢复为待审核状态。`)) return;
+  }
+
+  try {
+    const result = DB.confirmCancelOrder(orderId, approve, '');
+    if (result && result.success === false) {
+      alert('操作失败：' + result.message);
+      return;
+    }
+    renderView();
+  } catch (err) {
+    alert('操作失败：' + err.message);
+  }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+
+function emptyState(msg) {
+  return `<div class="bg-white rounded-2xl border border-[#E7E1D7] p-16 text-center text-[#5C635D]">${msg}</div>`;
+}
+
+// ── 初始化 ────────────────────────────────────────────────────
+renderView();
+</script>
+</body>
+</html>

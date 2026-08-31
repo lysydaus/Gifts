@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>礼盒详情 - 牧美满</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; letter-spacing: -0.02em; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+</style>
+<link rel="stylesheet" href="_mobile.css"/>
+</head>
+<body>
+
+<!-- 顶部 -->
+<div class="bg-white border-b border-[#E7E1D7] px-4 py-3 sticky top-0 z-40">
+  <div class="flex items-center gap-3">
+    <a href="javascript:history.back()" class="material-symbols-outlined text-[#1F2421]">arrow_back</a>
+    <h1 class="text-lg font-semibold text-[#1F2421]">礼盒详情</h1>
+  </div>
+</div>
+
+<!-- 主内容 -->
+<div class="pb-24">
+  <!-- 礼盒图片 -->
+  <div class="aspect-square bg-[#FBF9F5] relative" id="boxImage">
+    <!-- 动态加载 -->
+  </div>
+
+  <!-- 礼盒信息 -->
+  <div class="px-4 py-6">
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+      <div class="flex items-start justify-between mb-4">
+        <div>
+          <h2 class="text-2xl font-semibold text-[#1F2421] mb-2" id="boxName"></h2>
+          <p class="text-xl font-semibold text-[#C4612F]" id="boxPrice"></p>
+        </div>
+      </div>
+
+      <p class="text-sm text-[#5C635D] mb-4" id="boxDescription"></p>
+
+      <!-- 规格 -->
+      <div class="flex items-center gap-2 mb-4" id="boxSpecs">
+        <!-- 动态加载 -->
+      </div>
+
+      <!-- 可使用礼卡 -->
+      <div class="mb-4">
+        <p class="text-xs text-[#5C635D] mb-2">可使用礼卡</p>
+        <div class="flex flex-wrap gap-2" id="cardTypes">
+          <!-- 动态加载 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 礼盒内容 -->
+    <div class="mt-4 bg-white rounded-2xl border border-[#E7E1D7] p-5">
+      <h3 class="text-base font-semibold text-[#1F2421] mb-3">礼盒内容</h3>
+      <div class="space-y-2" id="boxContents">
+        <!-- 动态加载 -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 底部操作栏 -->
+<div class="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E7E1D7] px-4 py-3 safe-area-inset-bottom z-40">
+  <a href="#" id="redeemButton"
+     class="block text-center px-4 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-xl font-medium transition-colors">
+    立即兑换
+  </a>
+</div>
+
+<script src="../db.js"></script>
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const boxId = parseInt(urlParams.get('id'));
+
+if (!boxId) {
+  alert('礼盒ID无效');
+  history.back();
+}
+
+const box = DB.getGiftBoxes().find(b => b.id === boxId);
+if (!box) {
+  alert('礼盒不存在');
+  history.back();
+}
+
+// 加载礼盒图片
+const imageContainer = document.getElementById('boxImage');
+if (box.images && box.images[0]) {
+  imageContainer.innerHTML = `<img src="../${box.images[0]}" alt="${box.name}" class="w-full h-full object-contain"/>`;
+} else {
+  imageContainer.innerHTML = `
+    <div class="w-full h-full flex items-center justify-center">
+      <span class="material-symbols-outlined text-6xl text-[#E7E1D7]">inventory_2</span>
+    </div>
+  `;
+}
+
+// 加载礼盒信息
+document.getElementById('boxName').textContent = box.name;
+document.getElementById('boxPrice').textContent = `¥${box.price}`;
+document.getElementById('boxDescription').textContent = box.description;
+
+// 加载规格
+document.getElementById('boxSpecs').innerHTML = `
+  <span class="px-3 py-1.5 bg-[#FBF9F5] text-[#5C635D] rounded-lg text-sm">
+    重量: ${box.weight}
+  </span>
+  <span class="px-3 py-1.5 bg-[#FBF9F5] text-[#5C635D] rounded-lg text-sm">
+    ${box.contents.length}种产品
+  </span>
+`;
+
+// 加载可使用礼卡
+const cardTypes = DB._get('card_types');
+const availableCardTypes = cardTypes.filter(ct => box.card_types.includes(ct.name.replace('型', '')));
+document.getElementById('cardTypes').innerHTML = availableCardTypes.map(ct => `
+  <span class="px-3 py-1.5 bg-[#F2E3D6] text-[#C4612F] rounded-lg text-sm font-medium">
+    ${ct.name}
+  </span>
+`).join('');
+
+// 加载礼盒内容
+document.getElementById('boxContents').innerHTML = box.contents.map(item => `
+  <div class="flex items-start gap-3">
+    <span class="w-1.5 h-1.5 rounded-full bg-[#C4612F] mt-2 shrink-0"></span>
+    <span class="text-sm text-[#1F2421]">${item}</span>
+  </div>
+`).join('');
+
+// 兑换按钮
+document.getElementById('redeemButton').href = `redeem.html?box=${boxId}`;
+</script>
+</body>
+</html>

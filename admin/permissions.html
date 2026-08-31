@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>权限管理 - 系统管理</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; }
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+</style>
+</head>
+<body>
+
+<div class="max-w-7xl mx-auto px-6 py-6">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="heading text-3xl text-[#1F2421] mb-1">权限管理</h2>
+      <p class="text-[#5C635D] text-sm">管理系统中所有可用的页面访问权限</p>
+    </div>
+    <button onclick="showAddPermissionModal()"
+            class="flex items-center gap-2 px-6 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full transition-colors">
+      <span class="material-symbols-outlined text-xl">add</span>
+      <span class="font-medium">添加权限</span>
+    </button>
+  </div>
+
+  <!-- 权限列表 -->
+  <div class="bg-white rounded-2xl border border-[#E7E1D7] overflow-hidden">
+    <table class="w-full">
+      <thead class="bg-[#FBF9F5] border-b border-[#E7E1D7]">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">ID</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">分组</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">权限名称</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">页面路径</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">排序</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">权限标识</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">所属后台</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">描述</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">操作</th>
+        </tr>
+      </thead>
+      <tbody id="permissionsTable">
+        <!-- 动态加载 -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 添加/编辑权限弹窗 -->
+<div id="permissionModal" class="hidden fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-y-auto pt-20">
+  <div class="bg-white rounded-3xl max-w-2xl w-full p-8 my-8">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="heading text-2xl text-[#1F2421]" id="modalTitle">添加权限</h3>
+      <button onclick="closePermissionModal()" class="text-[#5C635D] hover:text-[#1F2421]">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <form id="permissionForm" class="space-y-5">
+      <input type="hidden" id="permissionId"/>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">权限标识 *</label>
+        <input type="text" id="permissionKey" required
+               class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="例如: merchant:order-review"/>
+        <p class="text-xs text-[#5C635D] mt-1">格式: backend:page-id（如 merchant:order-review）</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">权限名称 *</label>
+        <input type="text" id="permissionName" required
+               class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="例如: 订单审核"/>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">所属后台 *</label>
+        <select id="permissionBackend" required
+                class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]">
+          <option value="">请选择</option>
+          <option value="merchant">商家运营后台</option>
+          <option value="admin">系统管理后台</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">页面路径 *</label>
+        <input type="text" id="permissionPage" required
+               class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="例如: orders.html"/>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">功能分组</label>
+        <input type="text" id="permissionGroup"
+               class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="例如: 订单管理"/>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">排序</label>
+        <input type="number" id="permissionSortOrder" min="1"
+               class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="导航显示顺序，如: 1, 2, 3..."/>
+        <p class="text-xs text-[#5C635D] mt-1">每个后台独立排序（商家后台、系统管理各自1,2,3...）</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">描述</label>
+        <textarea id="permissionDescription" rows="3"
+                  class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+                  placeholder="权限的详细描述"></textarea>
+      </div>
+
+      <div class="flex gap-3 pt-4">
+        <button type="button" onclick="closePermissionModal()"
+                class="flex-1 px-4 py-3 border border-[#E7E1D7] text-[#1F2421] rounded-full hover:bg-[#FBF9F5]">
+          取消
+        </button>
+        <button type="submit"
+                class="flex-1 px-4 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full">
+          保存
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../db.js"></script>
+<script>
+// 检查登录状态
+const user = DB.getCurrentUser();
+if (!user || user.role !== 'admin') {
+  window.location.href = 'login.html';
+}
+
+function loadPermissions() {
+  const permissions = DB.getPermissions();
+  const tbody = document.getElementById('permissionsTable');
+
+  if (permissions.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-[#5C635D]">暂无权限</td></tr>';
+    return;
+  }
+
+  // Sort by backend then sort_order
+  const sortedPerms = [...permissions].sort((a, b) => {
+    if (a.backend !== b.backend) {
+      return a.backend === 'merchant' ? -1 : 1;
+    }
+    return (a.sort_order || 0) - (b.sort_order || 0);
+  });
+
+  tbody.innerHTML = sortedPerms.map(perm => `
+    <tr class="border-b border-[#E7E1D7] hover:bg-[#FBF9F5] transition-colors">
+      <td class="px-4 py-3 text-sm text-[#5C635D]">${perm.id}</td>
+      <td class="px-4 py-3 text-sm text-[#5C635D]">${perm.group || '-'}</td>
+      <td class="px-4 py-3 text-sm font-medium text-[#1F2421]">${perm.name}</td>
+      <td class="px-4 py-3 text-sm text-[#5C635D] font-mono">${perm.page}</td>
+      <td class="px-4 py-3 text-sm text-[#1F2421]">${perm.sort_order || '-'}</td>
+      <td class="px-4 py-3">
+        <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-mono">
+          ${perm.permission_key}
+        </span>
+      </td>
+      <td class="px-4 py-3">
+        <span class="px-2 py-1 ${perm.backend === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'} rounded-full text-xs">
+          ${perm.backend === 'admin' ? '系统管理' : '商家运营'}
+        </span>
+      </td>
+      <td class="px-4 py-3 text-sm text-[#5C635D]">${perm.description || '-'}</td>
+      <td class="px-4 py-3">
+        <button onclick="editPermission(${perm.id})"
+                class="text-[#C4612F] hover:text-[#A94E22] text-sm font-medium mr-3">
+          编辑
+        </button>
+        <button onclick="deletePermission(${perm.id})"
+                class="text-red-600 hover:text-red-800 text-sm font-medium">
+          删除
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function showAddPermissionModal() {
+  document.getElementById('modalTitle').textContent = '添加权限';
+  document.getElementById('permissionForm').reset();
+  document.getElementById('permissionId').value = '';
+  document.getElementById('permissionModal').classList.remove('hidden');
+}
+
+function editPermission(id) {
+  const permissions = DB.getPermissions();
+  const perm = permissions.find(p => p.id === id);
+  if (!perm) return;
+
+  document.getElementById('modalTitle').textContent = '编辑权限';
+  document.getElementById('permissionId').value = perm.id;
+  document.getElementById('permissionKey').value = perm.permission_key;
+  document.getElementById('permissionName').value = perm.name;
+  document.getElementById('permissionBackend').value = perm.backend;
+  document.getElementById('permissionPage').value = perm.page;
+  document.getElementById('permissionGroup').value = perm.group || '';
+  document.getElementById('permissionSortOrder').value = perm.sort_order || '';
+  document.getElementById('permissionDescription').value = perm.description || '';
+  document.getElementById('permissionModal').classList.remove('hidden');
+}
+
+function closePermissionModal() {
+  document.getElementById('permissionModal').classList.add('hidden');
+}
+
+document.getElementById('permissionForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const id = document.getElementById('permissionId').value;
+  const permData = {
+    permission_key: document.getElementById('permissionKey').value.trim(),
+    name: document.getElementById('permissionName').value.trim(),
+    backend: document.getElementById('permissionBackend').value,
+    page: document.getElementById('permissionPage').value.trim(),
+    group: document.getElementById('permissionGroup').value.trim(),
+    sort_order: parseInt(document.getElementById('permissionSortOrder').value) || 0,
+    description: document.getElementById('permissionDescription').value.trim()
+  };
+
+  if (id) {
+    // 编辑
+    DB.updatePermission(parseInt(id), permData);
+  } else {
+    // 新增
+    DB.addPermission(permData);
+  }
+
+  alert('保存成功');
+  closePermissionModal();
+  loadPermissions();
+});
+
+function deletePermission(id) {
+  if (!confirm('确定要删除这个权限吗？删除后，所有角色中引用该权限的配置也会被移除。')) {
+    return;
+  }
+
+  DB.deletePermission(id);
+  alert('删除成功');
+  loadPermissions();
+}
+
+loadPermissions();
+</script>
+</body>
+</html>

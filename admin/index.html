@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>系统管理 - 牧美满礼卡系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; margin: 0; }
+  .heading { font-family: 'Fraunces', serif; }
+
+  /* 顶部导航栏 */
+  .top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: white;
+    border-bottom: 1px solid #E7E1D7;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+  }
+
+  /* 左侧导航 */
+  .sidebar {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    bottom: 0;
+    width: 224px;
+    background: white;
+    border-right: 1px solid #E7E1D7;
+    overflow-y: auto;
+    z-index: 50;
+  }
+
+  /* 主内容区 */
+  .main-content {
+    position: fixed;
+    top: 64px;
+    left: 224px;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+  }
+
+  /* 菜单项样式 */
+  .menu-group {
+    padding: 16px 0;
+    border-bottom: 1px solid #E7E1D7;
+  }
+
+  .menu-group-title {
+    padding: 8px 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #5C635D;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .menu-item {
+    padding: 10px 20px 10px 48px;
+    font-size: 14px;
+    color: #1F2421;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: block;
+    text-decoration: none;
+  }
+
+  .menu-item:hover {
+    background: #FBF9F5;
+    color: #C4612F;
+  }
+
+  .menu-item.active {
+    background: #F2E3D6;
+    color: #C4612F;
+    font-weight: 500;
+    border-right: 3px solid #C4612F;
+  }
+
+  /* 欢迎页面 */
+  .welcome-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    padding: 40px;
+  }
+</style>
+</head>
+<body>
+
+<!-- 顶部导航栏 -->
+<div class="top-bar">
+  <div class="flex items-center gap-4">
+    <img src="../Pic/Logo.png" alt="牧美满" class="h-10 w-auto"/>
+    <div class="text-left">
+      <div class="text-sm font-semibold text-[#1F2421]">系统管理后台</div>
+      <div class="text-xs text-[#5C635D]">牧美满礼卡管理系统</div>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-4">
+    <div class="text-right">
+      <p class="text-sm font-medium text-[#1F2421]" id="userName">加载中...</p>
+      <p class="text-xs text-[#5C635D]" id="userAccount">加载中...</p>
+    </div>
+    <button onclick="logout()"
+            class="px-4 py-2 text-sm text-[#5C635D] hover:text-[#C4612F] transition-colors border-l border-[#E7E1D7]">
+      退出登录
+    </button>
+  </div>
+</div>
+
+<!-- 左侧导航 -->
+<div class="sidebar">
+  <!-- 用户管理 -->
+  <div class="menu-group">
+    <div class="menu-group-title">
+      <span class="material-symbols-outlined text-base">people</span>
+      <span>用户管理</span>
+    </div>
+    <a class="menu-item" data-page="users.html">用户列表</a>
+    <a class="menu-item" data-page="roles.html">角色权限</a>
+    <a class="menu-item" data-page="permissions.html">权限管理</a>
+  </div>
+
+  <!-- 系统配置 -->
+  <div class="menu-group">
+    <div class="menu-group-title">
+      <span class="material-symbols-outlined text-base">settings</span>
+      <span>系统配置</span>
+    </div>
+    <a class="menu-item" data-page="config.html">基础配置</a>
+  </div>
+</div>
+
+<!-- 主内容区 -->
+<div class="main-content" id="mainContent">
+  <div class="welcome-page">
+    <div>
+      <div class="mb-6">
+        <img src="../Pic/Logo.png" alt="牧美满" class="h-20 w-auto mx-auto mb-4 opacity-50"/>
+      </div>
+      <h2 class="heading text-3xl text-[#1F2421] mb-2">
+        <span style="color: #C4612F; font-style: italic;">系统管理</span>后台
+      </h2>
+      <p class="text-[#5C635D]">请从左侧菜单选择功能模块</p>
+    </div>
+  </div>
+</div>
+
+<script src="../db.js"></script>
+<script>
+// 检查登录状态
+function checkAdminAuth() {
+  const user = DB.getCurrentUser();
+  if (!user || user.role !== 'admin') {
+    window.location.href = 'login.html';
+    return;
+  }
+  // 显示用户姓名和账号
+  document.getElementById('userName').textContent = user.name || '未知用户';
+  document.getElementById('userAccount').textContent = user.username || '未知账号';
+}
+
+// 退出登录
+function logout() {
+  if (confirm('确认退出登录？')) {
+    localStorage.removeItem('currentUser');
+    window.location.href = 'login.html';
+  }
+}
+
+// 加载页面内容
+function loadPage(page) {
+  const mainContent = document.getElementById('mainContent');
+
+  // 移除所有菜单项的active状态
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.classList.remove('active');
+  });
+
+  // 添加当前菜单项的active状态
+  const activeItem = document.querySelector(`[data-page="${page}"]`);
+  if (activeItem) {
+    activeItem.classList.add('active');
+  }
+
+  // 加载页面内容
+  mainContent.innerHTML = `<iframe src="${page}" style="width: 100%; height: 100%; border: none;"></iframe>`;
+}
+
+// 绑定菜单点击事件
+document.querySelectorAll('.menu-item').forEach(item => {
+  item.addEventListener('click', function(e) {
+    e.preventDefault();
+    const page = this.getAttribute('data-page');
+    if (page) {
+      loadPage(page);
+    }
+  });
+});
+
+checkAdminAuth();
+</script>
+</body>
+</html>

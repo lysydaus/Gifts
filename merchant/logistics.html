@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>物流核销 - 商家后台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; }
+</style>
+</head>
+<body>
+
+<div class="max-w-7xl mx-auto px-6 py-6">
+  <div class="mb-6 flex items-center justify-between">
+    <div>
+      <h2 class="heading text-3xl text-[#1F2421] mb-1">物流核销</h2>
+      <p class="text-[#5C635D] text-sm">管理订单物流信息和核销</p>
+    </div>
+    <a href="logistics-list.html"
+       class="px-4 py-2 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-xl text-sm font-medium">
+      查看物流信息
+    </a>
+  </div>
+
+  <!-- 筛选 -->
+  <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5 mb-6">
+    <div class="flex gap-4">
+      <select id="statusFilter" onchange="loadPendingOrders()"
+              class="px-4 py-2 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]">
+        <option value="">全部状态</option>
+        <option value="approved" selected>待发货</option>
+      </select>
+      <input type="text" id="searchInput" placeholder="搜索订单礼盒号、快递单号..."
+             class="flex-1 px-4 py-2 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+             oninput="loadPendingOrders()"/>
+    </div>
+  </div>
+
+  <!-- 待发货订单 - 按收货地址分组 -->
+  <div class="mb-6">
+    <h3 class="text-lg font-semibold text-[#1F2421] mb-4">待发货订单</h3>
+    <div class="space-y-6" id="pendingOrders">
+      <!-- 动态加载 -->
+    </div>
+  </div>
+</div>
+
+<!-- 创建物流弹窗 -->
+<div id="createModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-3xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto">
+    <h3 class="heading text-2xl text-[#1F2421] mb-6">安排发货</h3>
+    <form id="createForm" class="space-y-5">
+      <input type="hidden" id="orderIds"/>
+
+      <!-- 订单列表 -->
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">包含订单</label>
+        <div id="orderList" class="space-y-2 p-4 bg-[#FBF9F5] rounded-xl max-h-60 overflow-y-auto">
+          <!-- 动态加载 -->
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">物流公司</label>
+        <select id="provider" required
+                class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]">
+          <option value="">请选择物流公司</option>
+          <option value="顺丰速运">顺丰速运</option>
+          <option value="京东物流">京东物流</option>
+          <option value="德邦快递">德邦快递</option>
+          <option value="中通快递">中通快递</option>
+          <option value="圆通速递">圆通速递</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">快递单号</label>
+        <input type="text" id="trackingNo" required
+               class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="请输入快递单号"/>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">配送员姓名（选填）</label>
+        <input type="text" id="courierName"
+               class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="请输入配送员姓名"/>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">配送员电话（选填）</label>
+        <input type="text" id="courierPhone"
+               class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+               placeholder="请输入配送员电话"/>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">备注（选填）</label>
+        <textarea id="note" rows="3"
+                  class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+                  placeholder="如特殊说明、预计送达时间等"></textarea>
+      </div>
+
+      <div class="flex gap-3">
+        <button type="button" onclick="closeCreateModal()"
+                class="flex-1 px-4 py-3 border border-[#E7E1D7] text-[#1F2421] rounded-full hover:bg-[#FBF9F5]">
+          取消
+        </button>
+        <button type="submit"
+                class="flex-1 px-4 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full">
+          确认发货
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../db.js"></script>
+<script>
+const user = DB.getCurrentUser();
+if (!user || user.role !== 'merchant') {
+  window.location.href = 'login.html';
+}
+
+function loadPendingOrders() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  let orders = DB.getOrders({ status: 'approved' });
+
+  // 搜索过滤
+  if (search) {
+    orders = orders.filter(o =>
+      o.order_no.toLowerCase().includes(search) ||
+      (o.receiver_name && o.receiver_name.includes(search))
+    );
+  }
+
+  const container = document.getElementById('pendingOrders');
+
+  if (orders.length === 0) {
+    container.innerHTML = '<div class="bg-white rounded-2xl border border-[#E7E1D7] p-8 text-center text-[#5C635D]">暂无待发货订单</div>';
+    return;
+  }
+
+  // 按收货信息分组
+  const groups = {};
+  orders.forEach(order => {
+    const key = `${order.receiver_name}|${order.receiver_phone}|${order.receiver_address}`;
+    if (!groups[key]) {
+      groups[key] = {
+        receiver_name: order.receiver_name,
+        receiver_phone: order.receiver_phone,
+        receiver_address: order.receiver_address,
+        orders: []
+      };
+    }
+    groups[key].orders.push(order);
+  });
+
+  // 渲染分组
+  container.innerHTML = Object.values(groups).map(group => {
+    const orderIds = group.orders.map(o => o.id);
+    const canMerge = group.orders.length > 1;
+
+    return `
+      <div class="bg-white rounded-2xl border border-[#E7E1D7] p-6">
+        <!-- 收货信息 -->
+        <div class="mb-4 p-4 bg-[#FBF9F5] rounded-xl">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-sm font-semibold text-[#1F2421] mb-1">${group.receiver_name} ${group.receiver_phone}</p>
+              <p class="text-sm text-[#5C635D]">${group.receiver_address}</p>
+            </div>
+            ${canMerge ? `
+              <button onclick="createMergedLogistics([${orderIds.join(',')}])"
+                      class="px-4 py-2 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-xl text-sm font-medium whitespace-nowrap">
+                合并发货 (${group.orders.length}单)
+              </button>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- 订单列表 -->
+        <div class="space-y-3">
+          ${group.orders.map(order => {
+            const giftBox = DB.getGiftBox(order.gift_box_id);
+            return `
+              <div class="flex items-center justify-between p-4 border border-[#E7E1D7] rounded-xl hover:bg-[#FBF9F5] transition-colors">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3 mb-2">
+                    <p class="text-sm font-semibold text-[#1F2421]">订单号: ${order.order_no}</p>
+                    <span class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs">待发货</span>
+                  </div>
+                  <div class="flex items-center gap-4 text-xs text-[#5C635D]">
+                    <span>产品: ${giftBox ? giftBox.name : '-'}</span>
+                    <span>审核通过: ${new Date(order.updated_at || order.created_at).toLocaleString()}</span>
+                  </div>
+                </div>
+                <button onclick="createSingleLogistics(${order.id})"
+                        class="px-3 py-1.5 border border-[#C4612F] text-[#C4612F] hover:bg-[#FBF9F5] rounded-lg text-sm">
+                  单独发货
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function createSingleLogistics(orderId) {
+  createLogistics([orderId]);
+}
+
+function createMergedLogistics(orderIds) {
+  createLogistics(orderIds);
+}
+
+function createLogistics(orderIds) {
+  document.getElementById('orderIds').value = orderIds.join(',');
+
+  // 显示订单列表
+  const orders = orderIds.map(id => DB.getOrders().find(o => o.id === id)).filter(Boolean);
+  const orderListHtml = orders.map(order => {
+    const giftBox = DB.getGiftBox(order.gift_box_id);
+    return `
+      <div class="flex items-center justify-between text-sm p-2 bg-white rounded-lg">
+        <span class="font-mono text-[#5C635D]">${order.order_no}</span>
+        <span class="text-[#1F2421]">${giftBox ? giftBox.name : '-'}</span>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('orderList').innerHTML = orderListHtml;
+  document.getElementById('createModal').classList.remove('hidden');
+}
+
+function closeCreateModal() {
+  document.getElementById('createModal').classList.add('hidden');
+  document.getElementById('createForm').reset();
+}
+
+document.getElementById('createForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const orderIdsStr = document.getElementById('orderIds').value;
+  const orderIds = orderIdsStr.split(',').map(id => parseInt(id.trim()));
+  const provider = document.getElementById('provider').value;
+  const trackingNo = document.getElementById('trackingNo').value;
+  const courierName = document.getElementById('courierName').value.trim();
+  const courierPhone = document.getElementById('courierPhone').value.trim();
+  const note = document.getElementById('note').value.trim();
+
+  if (orderIds.length === 0) {
+    alert('没有选择订单');
+    return;
+  }
+
+  const orders = orderIds.map(id => DB.getOrders().find(o => o.id === id)).filter(Boolean);
+  if (orders.length === 0) {
+    alert('订单不存在');
+    return;
+  }
+
+  // 获取第一个订单的收货信息（同一组的收货信息相同）
+  const firstOrder = orders[0];
+
+  try {
+    // 创建物流记录
+    const logisticsData = {
+      order_id: orderIds[0], // 主订单ID
+      order_ids: orderIds, // 所有订单ID数组
+      logistics_company: provider,
+      logistics_no: trackingNo,
+      courier_name: courierName || '',
+      courier_phone: courierPhone || '',
+      receiver_name: firstOrder.receiver_name,
+      receiver_phone: firstOrder.receiver_phone,
+      receiver_address: firstOrder.receiver_address,
+      delivery_method: '快递配送',
+      note: note
+    };
+
+    DB.createLogistics(logisticsData);
+
+    // 更新所有订单状态为已发货
+    orderIds.forEach(orderId => {
+      DB.updateOrderStatus(orderId, 'shipped');
+    });
+
+    alert(`发货成功！已为 ${orderIds.length} 个订单创建物流单`);
+    closeCreateModal();
+    loadPendingOrders();
+  } catch (err) {
+    alert('操作失败: ' + err.message);
+  }
+});
+
+loadPendingOrders();
+</script>
+</body>
+</html>

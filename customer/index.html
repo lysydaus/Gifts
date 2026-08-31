@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>牧美满 - 优质牛羊肉礼卡</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; letter-spacing: -0.02em; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+</style>
+<link rel="stylesheet" href="_mobile.css"/>
+</head>
+<body>
+
+<!-- 顶部品牌栏 -->
+<div class="bg-white border-b border-[#E7E1D7] px-4 py-3 sticky top-0 z-40">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-[#C4612F] flex items-center justify-center">
+        <span class="text-white text-lg font-bold">牧</span>
+      </div>
+      <div>
+        <h1 class="text-base font-semibold text-[#1F2421]">牧美满</h1>
+        <p class="text-xs text-[#5C635D]">牧羊天成 美满人席</p>
+      </div>
+    </div>
+    <a href="profile.html" class="w-9 h-9 rounded-full bg-[#FBF9F5] flex items-center justify-center">
+      <span class="material-symbols-outlined text-[#C4612F]">person</span>
+    </a>
+  </div>
+</div>
+
+<!-- 主内容 -->
+<div class="px-4 py-6 pb-20">
+  <!-- 产品板块 -->
+  <div class="mb-8" id="productsSection">
+    <h3 class="heading text-xl text-[#1F2421] mb-4">精选产品</h3>
+    <div class="grid grid-cols-2 gap-3" id="productsList">
+      <!-- 动态加载 -->
+    </div>
+  </div>
+
+  <!-- 商家介绍板块 -->
+  <div class="mb-6">
+    <h3 class="heading text-xl text-[#1F2421] mb-4">关于牧美满</h3>
+
+    <!-- 店铺信息卡片 -->
+    <div class="mb-4 p-5 bg-white rounded-2xl border border-[#E7E1D7]">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-xl bg-[#F2E3D6] flex items-center justify-center">
+          <span class="material-symbols-outlined text-[#C4612F] text-2xl">store</span>
+        </div>
+        <div class="flex-1">
+          <h4 class="font-semibold text-[#1F2421]" id="storeName">牧美满</h4>
+          <p class="text-xs text-[#5C635D]" id="storeBrand">牧羊天成 美满人席</p>
+        </div>
+      </div>
+      <p class="text-sm text-[#5C635D] leading-relaxed" id="storePhilosophy">
+        源自内蒙古大草原的优质牛羊肉，传承匠心品质
+      </p>
+      <div class="flex items-center gap-4 mt-3 pt-3 border-t border-[#E7E1D7] text-xs text-[#5C635D]">
+        <div class="flex items-center gap-1">
+          <span class="material-symbols-outlined text-base">call</span>
+          <span id="storePhone">0471-3353365</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <span class="material-symbols-outlined text-base">schedule</span>
+          <span id="storeHours">9:00-17:30</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 宣传图册 -->
+    <div class="space-y-3">
+      <div class="rounded-2xl overflow-hidden border border-[#E7E1D7]">
+        <img src="../Pic/牧美满宣传册03.png" alt="牧美满宣传" class="w-full"/>
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-[#E7E1D7]">
+        <img src="../Pic/牧美满宣传册04.png" alt="牧美满宣传" class="w-full"/>
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-[#E7E1D7]">
+        <img src="../Pic/牧美满宣传册05.png" alt="牧美满宣传" class="w-full"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- 联系我们 -->
+  <div class="px-4 pb-6">
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] overflow-hidden">
+      <div class="p-5">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 rounded-xl bg-[#F2E3D6] flex items-center justify-center">
+            <span class="material-symbols-outlined text-[#C4612F] text-2xl">store</span>
+          </div>
+          <div>
+            <h4 class="font-semibold text-[#1F2421]">牧美满</h4>
+            <p class="text-xs text-[#5C635D]">牧羊天成 美满人席</p>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <a href="tel:13354716045" class="flex items-center gap-3 p-3 rounded-xl bg-[#FBF9F5] hover:bg-[#F2E3D6] transition-colors">
+            <span class="material-symbols-outlined text-[#C4612F]">call</span>
+            <span class="text-sm text-[#1F2421]">13354716045</span>
+          </a>
+          <a href="tel:15104861913" class="flex items-center gap-3 p-3 rounded-xl bg-[#FBF9F5] hover:bg-[#F2E3D6] transition-colors">
+            <span class="material-symbols-outlined text-[#C4612F]">call</span>
+            <span class="text-sm text-[#1F2421]">15104861913</span>
+          </a>
+          <div class="flex items-center gap-3 p-3 rounded-xl bg-[#FBF9F5]">
+            <span class="material-symbols-outlined text-[#C4612F]">schedule</span>
+            <span class="text-sm text-[#5C635D]">9:00-17:30（法定节假日除外）</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="nav"></div>
+
+<script src="../db.js"></script>
+<script src="_nav.js"></script>
+<script>
+document.getElementById('nav').innerHTML = CustomerNav.render('home');
+
+// 加载店铺信息
+function loadStoreInfo() {
+  const store = DB._get('store');
+  if (store) {
+    document.getElementById('storeName').textContent = store.name || '牧美满';
+    document.getElementById('storeBrand').textContent = store.brand || '牧羊天成 美满人席';
+    document.getElementById('storePhilosophy').textContent = store.philosophy || '源自内蒙古大草原的优质牛羊肉，传承匠心品质';
+    document.getElementById('storePhone').textContent = store.phone || '0471-3353365';
+    document.getElementById('storeHours').textContent = store.service_hours || '9:00-17:30';
+  }
+}
+
+// 加载产品（原料产品，不是礼盒）
+function loadProducts() {
+  const products = DB.getProducts({ status: 'active' });
+  const container = document.getElementById('productsList');
+
+  if (products.length === 0) {
+    container.innerHTML = '<div class="col-span-2 text-center py-12 text-[#5C635D]">暂无产品</div>';
+    return;
+  }
+
+  container.innerHTML = products.map(product => {
+    const boxes = DB.getGiftBoxes({ product_id: product.id });
+
+    return `
+      <a href="product.html?id=${product.id}"
+         class="block bg-white rounded-2xl border border-[#E7E1D7] overflow-hidden hover:shadow-lg transition-shadow">
+        <!-- 产品图片 -->
+        <div class="aspect-square bg-[#FBF9F5] relative">
+          ${product.intro_images && product.intro_images[0] ? `
+            <img src="../${product.intro_images[0]}" alt="${product.name}" class="w-full h-full object-cover"/>
+          ` : `
+            <div class="w-full h-full flex items-center justify-center">
+              <span class="material-symbols-outlined text-5xl text-[#E7E1D7]">inventory</span>
+            </div>
+          `}
+        </div>
+
+        <!-- 产品信息 -->
+        <div class="p-3">
+          <h3 class="text-base font-semibold text-[#1F2421] mb-1">${product.name}</h3>
+          <p class="text-xs text-[#5C635D] mb-2 line-clamp-2">${product.description || ''}</p>
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-[#5C635D]">${boxes.length}个礼盒</span>
+            <span class="material-symbols-outlined text-[#C4612F] text-lg">arrow_forward</span>
+          </div>
+        </div>
+      </a>
+    `;
+  }).join('');
+}
+
+function scrollToProducts() {
+  document.getElementById('productsSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+loadStoreInfo();
+loadProducts();
+</script>
+</body>
+</html>

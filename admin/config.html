@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>基础配置 - 系统管理</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"/>
+<style>
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #F7F4EF;
+    margin: 0;
+    padding: 20px;
+  }
+  .heading { font-family: 'Fraunces', serif; }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  .logo-preview {
+    max-width: 200px;
+    max-height: 80px;
+    object-fit: contain;
+  }
+
+  .config-card {
+    background: white;
+    border: 1px solid #E7E1D7;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1F2421;
+    margin-bottom: 8px;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #E7E1D7;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #1F2421;
+    background: white;
+    transition: all 0.2s;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: #C4612F;
+    box-shadow: 0 0 0 3px rgba(196, 97, 47, 0.1);
+  }
+
+  .form-input:disabled {
+    background: #F7F4EF;
+    color: #5C635D;
+    cursor: not-allowed;
+  }
+
+  .help-text {
+    font-size: 12px;
+    color: #5C635D;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="max-w-4xl">
+  <!-- 页面标题 -->
+  <div class="mb-6">
+    <h1 class="heading text-2xl font-semibold text-[#1F2421] mb-2">基础配置</h1>
+    <p class="text-[#5C635D] text-sm">配置系统基本信息和客服联系方式</p>
+  </div>
+
+  <!-- Logo配置 -->
+  <div class="config-card">
+    <h2 class="text-lg font-semibold text-[#1F2421] mb-4 flex items-center gap-2">
+      <span class="material-symbols-outlined text-[#C4612F]">image</span>
+      系统Logo
+    </h2>
+
+    <div class="form-group">
+      <label class="form-label">当前Logo</label>
+      <div class="mb-4">
+        <img id="logoPreview" src="../Pic/Logo.png" alt="系统Logo" class="logo-preview border border-[#E7E1D7] rounded p-2"/>
+      </div>
+
+      <label class="form-label">Logo路径</label>
+      <input type="text" id="logoPath" class="form-input" placeholder="如: ../Pic/Logo.png"/>
+      <p class="help-text">相对于当前页面的路径，修改后需刷新页面查看效果</p>
+    </div>
+  </div>
+
+  <!-- 公司信息 -->
+  <div class="config-card">
+    <h2 class="text-lg font-semibold text-[#1F2421] mb-4 flex items-center gap-2">
+      <span class="material-symbols-outlined text-[#C4612F]">business</span>
+      公司信息
+    </h2>
+
+    <div class="form-group">
+      <label class="form-label">公司名称</label>
+      <input type="text" id="companyName" class="form-input" placeholder="如: 内蒙古诚友网络科技有限公司"/>
+    </div>
+  </div>
+
+  <!-- 客服配置 -->
+  <div class="config-card">
+    <h2 class="text-lg font-semibold text-[#1F2421] mb-4 flex items-center gap-2">
+      <span class="material-symbols-outlined text-[#C4612F]">support_agent</span>
+      客服联系方式
+    </h2>
+
+    <div class="form-group">
+      <label class="form-label">客服电话1</label>
+      <input type="tel" id="servicePhone1" class="form-input" placeholder="如: 13354716045"/>
+      <p class="help-text">用户可联系的客服手机号</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">客服电话2</label>
+      <input type="tel" id="servicePhone2" class="form-input" placeholder="如: 15104861913"/>
+      <p class="help-text">第二个客服联系电话</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">服务时间</label>
+      <input type="text" id="serviceHours" class="form-input" placeholder="如: 9:00-17:30"/>
+    </div>
+  </div>
+
+  <!-- 保存按钮 -->
+  <div class="flex justify-end gap-3">
+    <button onclick="resetConfig()"
+            class="px-6 py-2.5 border border-[#E7E1D7] rounded-lg text-[#5C635D] hover:bg-[#FBF9F5] transition-colors">
+      重置
+    </button>
+    <button onclick="saveConfig()"
+            class="px-6 py-2.5 bg-[#C4612F] hover:bg-[#A8522A] text-white rounded-lg transition-colors">
+      保存配置
+    </button>
+  </div>
+</div>
+
+<script src="../db.js"></script>
+<script>
+// 加载配置
+function loadConfig() {
+  const config = DB._get('system_config') || {};
+
+  document.getElementById('logoPath').value = config.logo_path || '../Pic/Logo.png';
+  document.getElementById('companyName').value = config.company_name || '内蒙古诚友网络科技有限公司';
+  document.getElementById('servicePhone1').value = config.service_phone_1 || '13354716045';
+  document.getElementById('servicePhone2').value = config.service_phone_2 || '15104861913';
+  document.getElementById('serviceHours').value = config.service_hours || '9:00-17:30';
+
+  // 更新logo预览
+  const logoPath = config.logo_path || '../Pic/Logo.png';
+  document.getElementById('logoPreview').src = logoPath;
+}
+
+// 保存配置
+function saveConfig() {
+  const logoPath = document.getElementById('logoPath').value.trim();
+  const companyName = document.getElementById('companyName').value.trim();
+  const servicePhone1 = document.getElementById('servicePhone1').value.trim();
+  const servicePhone2 = document.getElementById('servicePhone2').value.trim();
+  const serviceHours = document.getElementById('serviceHours').value.trim();
+
+  // 验证必填项
+  if (!companyName) {
+    alert('请输入公司名称');
+    return;
+  }
+
+  if (!servicePhone1) {
+    alert('请输入至少一个客服电话');
+    return;
+  }
+
+  // 验证电话格式
+  const phoneRegex = /^1[3-9]\d{9}$/;
+  if (servicePhone1 && !phoneRegex.test(servicePhone1)) {
+    alert('客服电话1格式不正确，请输入11位手机号');
+    return;
+  }
+
+  if (servicePhone2 && !phoneRegex.test(servicePhone2)) {
+    alert('客服电话2格式不正确，请输入11位手机号');
+    return;
+  }
+
+  // 获取现有配置
+  const config = DB._get('system_config') || {};
+
+  // 更新配置
+  config.logo_path = logoPath || '../Pic/Logo.png';
+  config.company_name = companyName;
+  config.service_phone_1 = servicePhone1;
+  config.service_phone_2 = servicePhone2;
+  config.service_hours = serviceHours || '9:00-17:30';
+
+  // 保存到localStorage
+  DB._set('system_config', config);
+
+  // 更新logo预览
+  document.getElementById('logoPreview').src = config.logo_path;
+
+  alert('配置保存成功！');
+}
+
+// 重置配置
+function resetConfig() {
+  if (confirm('确定要重置为默认配置吗？')) {
+    loadConfig();
+  }
+}
+
+// 页面加载时读取配置
+loadConfig();
+</script>
+</body>
+</html>

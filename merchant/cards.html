@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>批量生成礼卡 - 商家后台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; }
+</style>
+</head>
+<body>
+
+<div class="max-w-7xl mx-auto px-6 py-6">
+  <!-- 页头 -->
+  <div class="mb-6">
+    <h2 class="heading text-3xl text-[#1F2421] mb-1">批量生成礼卡</h2>
+    <p class="text-[#5C635D] text-sm">批量生成新礼卡，生成后可导出Excel表格</p>
+  </div>
+
+  <!-- 批量生成礼卡区域 -->
+  <div class="bg-white rounded-2xl border border-[#E7E1D7] p-6 mb-6">
+    <h3 class="text-lg font-semibold text-[#1F2421] mb-4">批量生成礼卡</h3>
+
+    <div class="grid grid-cols-3 gap-6 mb-6">
+      <!-- 年份 -->
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">年份</label>
+        <div class="flex items-center gap-2">
+          <button onclick="changeYear(-1)" type="button"
+                  class="w-10 h-10 flex items-center justify-center border border-[#E7E1D7] rounded-lg hover:bg-[#FBF9F5] transition-colors">
+            <span class="material-symbols-outlined text-[#5C635D]">remove</span>
+          </button>
+          <input type="number" id="genYear" value="2026" readonly
+                 class="flex-1 h-10 px-4 border border-[#E7E1D7] rounded-lg text-center text-lg font-semibold text-[#1F2421] bg-[#FBF9F5]">
+          <button onclick="changeYear(1)" type="button"
+                  class="w-10 h-10 flex items-center justify-center border border-[#E7E1D7] rounded-lg hover:bg-[#FBF9F5] transition-colors">
+            <span class="material-symbols-outlined text-[#5C635D]">add</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 批次 -->
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">批次</label>
+        <div class="flex items-center gap-2">
+          <button onclick="changeBatch(-1)" type="button"
+                  class="w-10 h-10 flex items-center justify-center border border-[#E7E1D7] rounded-lg hover:bg-[#FBF9F5] transition-colors">
+            <span class="material-symbols-outlined text-[#5C635D]">remove</span>
+          </button>
+          <input type="text" id="genBatch" value="01" maxlength="2"
+                 class="flex-1 h-10 px-4 border border-[#E7E1D7] rounded-lg text-center text-lg font-semibold text-[#1F2421] focus:outline-none focus:ring-2 focus:ring-[#C4612F]"
+                 oninput="validateBatch(this)">
+          <button onclick="changeBatch(1)" type="button"
+                  class="w-10 h-10 flex items-center justify-center border border-[#E7E1D7] rounded-lg hover:bg-[#FBF9F5] transition-colors">
+            <span class="material-symbols-outlined text-[#5C635D]">add</span>
+          </button>
+        </div>
+        <p class="text-xs text-[#5C635D] mt-1">两位数字，01-99</p>
+      </div>
+
+      <!-- 起始编号 -->
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">起始编号</label>
+        <input type="number" id="genStartSeq" min="0" max="99999" value="0"
+               class="w-full h-10 px-4 border border-[#E7E1D7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C4612F]">
+        <p class="text-xs text-[#5C635D] mt-1">00000-99999</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-6 mb-6">
+      <!-- 截止日期 -->
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">截止日期</label>
+        <input type="date" id="genExpireDate"
+               class="w-full h-10 px-4 border border-[#E7E1D7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C4612F]">
+      </div>
+
+      <!-- 型号(金额) -->
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">型号(金额)</label>
+        <input type="number" id="genAmount" min="0" max="5000" value="0" step="1"
+               class="w-full h-10 px-4 border border-[#E7E1D7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C4612F]">
+        <p class="text-xs text-[#5C635D] mt-1">0-5000元</p>
+      </div>
+
+      <!-- 生成数量 -->
+      <div>
+        <label class="block text-sm font-medium text-[#1F2421] mb-2">生成数量</label>
+        <input type="number" id="genCount" min="10" max="10000" value="1000"
+               class="w-full h-10 px-4 border border-[#E7E1D7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C4612F]">
+        <p class="text-xs text-[#5C635D] mt-1">默认1000个，最多10000个</p>
+      </div>
+    </div>
+
+    <div class="mb-6">
+      <!-- 二维码选项 -->
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" id="genQRCode"
+               class="w-5 h-5 text-[#C4612F] border-[#E7E1D7] rounded focus:ring-[#C4612F]">
+        <span class="text-[#1F2421]">生成二维码</span>
+      </label>
+    </div>
+
+    <!-- 卡号格式说明 -->
+    <div class="p-4 bg-[#FBF9F5] rounded-xl mb-6">
+      <div class="flex items-start gap-2">
+        <span class="material-symbols-outlined text-[#5C635D] text-lg">info</span>
+        <div class="flex-1">
+          <p class="text-sm text-[#5C635D]">
+            卡号格式：年份(4位) + 批次(2位) + 随机数(4位) + 顺序号(5位) + 校验位(1位) = 16位
+          </p>
+          <p class="text-xs text-[#5C635D] mt-1">
+            示例：<span class="font-mono text-[#C4612F]">2026</span><span class="font-mono">01</span><span class="font-mono">1234</span><span class="font-mono">00001</span><span class="font-mono">5</span>
+            (2026年 + 批次01 + 随机1234 + 顺序00001 + 校验位5)
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <button onclick="generateCards()" type="button"
+            class="w-full h-12 bg-[#C4612F] text-white rounded-xl font-medium hover:bg-[#A0501F] transition-colors flex items-center justify-center gap-2">
+      <span class="material-symbols-outlined">save</span>
+      生成礼卡
+    </button>
+  </div>
+
+  <!-- 统计卡片 -->
+  <div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+      <p class="text-xs text-[#5C635D] mb-1">本次生成</p>
+      <p class="text-2xl font-semibold text-[#C4612F]" id="stat_generated">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+      <p class="text-xs text-[#5C635D] mb-1">历史总数</p>
+      <p class="text-2xl font-semibold text-[#1F2421]" id="stat_total">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+      <p class="text-xs text-[#5C635D] mb-1">今日生成</p>
+      <p class="text-2xl font-semibold text-blue-600" id="stat_today">0</p>
+    </div>
+  </div>
+
+  <!-- 本批次生成的礼卡列表 -->
+  <div class="bg-white rounded-2xl border border-[#E7E1D7] overflow-hidden">
+    <div class="p-4 border-b border-[#E7E1D7] flex justify-between items-center">
+      <p class="text-sm text-[#5C635D]">显示最近生成的礼卡</p>
+      <button onclick="exportCards()"
+              class="px-4 py-2 border border-[#E7E1D7] text-[#1F2421] rounded-xl hover:bg-[#FBF9F5] transition-colors">
+        导出Excel
+      </button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-[#FBF9F5] border-b border-[#E7E1D7]">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">ID</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">卡号</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">密码</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">金额</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">类型</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">创建时间</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">有效期</th>
+          </tr>
+        </thead>
+        <tbody id="cardsTable">
+          <tr>
+            <td colspan="7" class="px-4 py-8 text-center text-[#5C635D]">暂无数据</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 预览弹窗 -->
+<div id="previewModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-3xl max-w-4xl w-full p-8 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h3 class="heading text-2xl text-[#1F2421]">生成预览</h3>
+        <p class="text-sm text-[#5C635D] mt-1">共生成 <span id="previewTotal" class="font-semibold text-[#C4612F]">0</span> 张礼卡，显示前 <span id="previewShowing">0</span> 条</p>
+      </div>
+      <button onclick="closePreviewModal()"
+              class="text-[#5C635D] hover:text-[#1F2421]">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="overflow-x-auto mb-6">
+      <table class="w-full">
+        <thead class="bg-[#FBF9F5] border-b border-[#E7E1D7]">
+          <tr id="previewTableHeader">
+            <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">序号</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">卡号</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">密码</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">金额</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">有效期</th>
+          </tr>
+        </thead>
+        <tbody id="previewTable">
+          <!-- 动态填充 -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex gap-3">
+      <button onclick="exportFromPreview()"
+              class="flex-1 px-4 py-3 bg-[#C4612F] hover:bg-[#A0501F] text-white rounded-full transition-colors">
+        导出Excel
+      </button>
+      <button onclick="closePreviewModal()"
+              class="flex-1 px-4 py-3 border border-[#E7E1D7] text-[#1F2421] rounded-full hover:bg-[#FBF9F5] transition-colors">
+        关闭
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 查看详情弹窗 -->
+<div id="detailModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-3xl max-w-lg w-full p-8">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="heading text-2xl text-[#1F2421]">礼卡详情</h3>
+      <button onclick="closeDetailModal()"
+              class="text-[#5C635D] hover:text-[#1F2421]">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div id="cardDetail" class="space-y-3 text-sm"></div>
+  </div>
+</div>
+
+<script src="../db.js"></script>
+<script src="_nav.js"></script>
+<!-- QRCode.js library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+checkAuth();
+
+let currentYear = new Date().getFullYear();
+let generatedCardsCache = []; // 缓存本次生成的卡
+
+// 初始化生成器
+function initGenerator() {
+  currentYear = new Date().getFullYear();
+  document.getElementById('genYear').value = currentYear;
+
+  // 加载上次批次
+  const lastBatch = localStorage.getItem('_last_batch') || '01';
+  document.getElementById('genBatch').value = lastBatch;
+
+  // 设置默认截止日期为3年后
+  const expireDate = new Date();
+  expireDate.setFullYear(expireDate.getFullYear() + 3);
+  document.getElementById('genExpireDate').value = expireDate.toISOString().split('T')[0];
+
+  updateStats();
+}
+
+// 年份调整
+function changeYear(delta) {
+  const yearInput = document.getElementById('genYear');
+  let year = parseInt(yearInput.value) || currentYear;
+  year += delta;
+
+  // 不能小于当前年份
+  const thisYear = new Date().getFullYear();
+  if (year < thisYear) year = thisYear;
+  if (year > 2099) year = 2099;
+
+  yearInput.value = year;
+  currentYear = year;
+}
+
+// 批次调整
+function changeBatch(delta) {
+  const batchInput = document.getElementById('genBatch');
+  let batch = parseInt(batchInput.value) || 1;
+  batch += delta;
+
+  if (batch < 1) batch = 1;
+  if (batch > 99) batch = 99;
+
+  batchInput.value = batch.toString().padStart(2, '0');
+}
+
+// 验证批次输入
+function validateBatch(input) {
+  let value = input.value.replace(/\D/g, ''); // 只保留数字
+  if (value.length > 2) value = value.slice(0, 2);
+  if (value.length === 1) value = '0' + value; // 单位数自动补0
+  if (value === '00') value = '01'; // 不允许00
+  if (parseInt(value) > 99) value = '99';
+  input.value = value;
+}
+
+// 批量生成礼卡
+function generateCards() {
+  const year = parseInt(document.getElementById('genYear').value);
+  const batch = document.getElementById('genBatch').value;
+  const startSeq = parseInt(document.getElementById('genStartSeq').value);
+  const expireDate = document.getElementById('genExpireDate').value;
+  const amount = parseInt(document.getElementById('genAmount').value);
+  const count = parseInt(document.getElementById('genCount').value);
+  const generateQR = document.getElementById('genQRCode').checked;
+
+  // 验证
+  if (!batch || batch.length !== 2) {
+    alert('请输入正确的批次（01-99）');
+    return;
+  }
+  if (startSeq < 0 || startSeq > 99999) {
+    alert('起始编号必须在00000-99999之间');
+    return;
+  }
+  if (!expireDate) {
+    alert('请选择截止日期');
+    return;
+  }
+  if (amount < 0 || amount > 5000) {
+    alert('金额必须在0-5000之间');
+    return;
+  }
+  if (count < 10 || count > 10000) {
+    alert('生成数量必须在10-10000之间');
+    return;
+  }
+  if (startSeq + count > 100000) {
+    alert('起始编号+生成数量不能超过100000');
+    return;
+  }
+
+  if (!confirm(`确认生成 ${count} 张礼卡？\n年份：${year}\n批次：${batch}\n起始编号：${startSeq.toString().padStart(5, '0')}\n金额：¥${amount}\n截止日期：${expireDate}`)) return;
+
+  // 保存批次
+  localStorage.setItem('_last_batch', batch);
+
+  try {
+    const newCards = DB.batchGenerateCards({
+      year: year,
+      batch: batch,
+      startSeq: startSeq,
+      count: count,
+      amount: amount,
+      expireAt: expireDate,
+      generateQR: generateQR
+    });
+
+    generatedCardsCache = newCards;
+
+    // 显示预览弹窗
+    showPreviewModal(newCards);
+
+    updateStats();
+    loadCards();
+
+  } catch (e) {
+    alert('生成失败：' + e.message);
+  }
+}
+
+// 显示预览弹窗
+function showPreviewModal(cards) {
+  const modal = document.getElementById('previewModal');
+  const tbody = document.getElementById('previewTable');
+  const headerRow = document.getElementById('previewTableHeader');
+
+  // 只显示前10条作为预览
+  const previewCards = cards.slice(0, 10);
+
+  // 检查是否有二维码
+  const hasQRCode = cards.length > 0 && cards[0].qrcode_data;
+
+  // 动态设置表头
+  if (hasQRCode) {
+    headerRow.innerHTML = `
+      <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">序号</th>
+      <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">卡号</th>
+      <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">密码</th>
+      <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">金额</th>
+      <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">有效期</th>
+      <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">二维码</th>
+    `;
+  } else {
+    headerRow.innerHTML = `
+      <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">序号</th>
+      <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">卡号</th>
+      <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">密码</th>
+      <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">金额</th>
+      <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">有效期</th>
+    `;
+  }
+
+  tbody.innerHTML = previewCards.map((card, idx) => {
+    const qrCell = hasQRCode
+      ? `<td class="px-4 py-3"><img src="${card.qrcode_data}" alt="QR" class="w-20 h-20 border border-[#E7E1D7] rounded-lg" /></td>`
+      : '';
+
+    return `
+      <tr class="border-b border-[#E7E1D7]">
+        <td class="px-4 py-3 text-sm text-[#1F2421]">${idx + 1}</td>
+        <td class="px-4 py-3 text-sm font-mono text-[#1F2421]">${card.card_no_plain}</td>
+        <td class="px-4 py-3 text-sm font-mono text-[#5C635D]">${card.password_plain}</td>
+        <td class="px-4 py-3 text-sm font-semibold text-[#C4612F]">¥${card.amount}</td>
+        <td class="px-4 py-3 text-sm text-[#5C635D]">${card.expire_at.split('T')[0]}</td>
+        ${qrCell}
+      </tr>
+    `;
+  }).join('');
+
+  document.getElementById('previewTotal').textContent = cards.length;
+  document.getElementById('previewShowing').textContent = previewCards.length;
+
+  modal.classList.remove('hidden');
+}
+
+// 关闭预览弹窗
+function closePreviewModal() {
+  document.getElementById('previewModal').classList.add('hidden');
+}
+
+// 从预览弹窗导出
+function exportFromPreview() {
+  exportGeneratedCards();
+  closePreviewModal();
+}
+
+// 更新统计
+function updateStats() {
+  const allCards = DB.getCards();
+  const today = new Date().toISOString().split('T')[0];
+  const todayCards = allCards.filter(c => c.created_at.startsWith(today));
+
+  document.getElementById('stat_generated').textContent = generatedCardsCache.length;
+  document.getElementById('stat_total').textContent = allCards.length;
+  document.getElementById('stat_today').textContent = todayCards.length;
+}
+
+// 导出生成的卡
+function exportGeneratedCards() {
+  if (generatedCardsCache.length === 0) {
+    alert('没有可导出的数据');
+    return;
+  }
+
+  let csv = '﻿'; // UTF-8 BOM
+  csv += 'ID,卡号,密码,金额,类型,创建时间,有效期\n';
+
+  generatedCardsCache.forEach((card, idx) => {
+    const type = card.has_qrcode ? '含二维码' : '普通';
+    csv += `${idx + 1},${card.card_no_plain},${card.password_plain},${card.amount},${type},${new Date(card.created_at).toLocaleString('zh-CN')},${card.expire_at.split('T')[0]}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `礼卡_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+}
+
+// 加载礼卡类型
+function loadCardTypes() {
+  const types = DB._get('card_types');
+  const select = document.getElementById('cardType');
+  select.innerHTML = '<option value="">请选择类型</option>' +
+    types.map(t => `<option value="${t.id}">${t.name} - ¥${t.amount}</option>`).join('');
+}
+
+// 加载礼卡列表
+function loadCards() {
+  const cards = DB._get('gift_cards');
+  const today = new Date().toISOString().split('T')[0];
+
+  // 更新统计
+  document.getElementById('stat_total').textContent = cards.length;
+  document.getElementById('stat_generated').textContent = 0; // 本次生成的会在生成时更新
+  document.getElementById('stat_today').textContent = cards.filter(c => c.created_at.split('T')[0] === today).length;
+
+  // 渲染表格 - 只显示最近100条
+  const tbody = document.getElementById('cardsTable');
+  const recentCards = cards.slice(-100).reverse(); // 取最新100条
+
+  if (recentCards.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-[#5C635D]">暂无数据</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = recentCards.map(card => {
+    const cardType = DB._get('card_types').find(t => t.id === card.type_id);
+    const typeDisplay = cardType ? cardType.name : (card.has_qrcode ? '含二维码' : '普通卡');
+
+    return `
+      <tr class="border-b border-[#E7E1D7] hover:bg-[#FBF9F5] transition-colors">
+        <td class="px-4 py-3 text-sm text-[#1F2421]">${card.id}</td>
+        <td class="px-4 py-3 text-sm font-mono text-[#1F2421]">${DB._decrypt(card.card_no_encrypted)}</td>
+        <td class="px-4 py-3 text-sm font-mono text-[#5C635D]">${DB._decrypt(card.password_encrypted)}</td>
+        <td class="px-4 py-3 text-sm font-semibold text-[#C4612F]">¥${card.amount}</td>
+        <td class="px-4 py-3 text-sm text-[#5C635D]">${typeDisplay}</td>
+        <td class="px-4 py-3 text-sm text-[#5C635D]">${new Date(card.created_at).toLocaleString()}</td>
+        <td class="px-4 py-3 text-sm text-[#5C635D]">${new Date(card.expire_at).toLocaleDateString()}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// 导出礼卡
+function exportCards() {
+  const cards = DB._get('gift_cards');
+
+  if (cards.length === 0) {
+    alert('暂无礼卡可导出');
+    return;
+  }
+
+  let csv = '﻿'; // UTF-8 BOM
+  csv += 'ID,卡号,密码,金额,类型,创建时间,有效期,二维码内容\n';
+
+  cards.forEach(card => {
+    const cardNo = DB._decrypt(card.card_no_encrypted);
+    const password = DB._decrypt(card.password_encrypted);
+    const qrContent = `MMM:${cardNo}:${password}`;
+    const cardType = DB._get('card_types').find(t => t.id === card.type_id);
+
+    csv += `${card.id},${cardNo},${password},${card.amount},${cardType ? cardType.name : card.type},${new Date(card.created_at).toLocaleString()},${new Date(card.expire_at).toLocaleDateString()},${qrContent}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `MMM-牧美满-礼卡-${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+
+  alert('已导出CSV文件');
+}
+
+// 查看详情
+function viewCard(id) {
+  const cards = DB.getCards();
+  const card = cards.find(c => c.id === id);
+  if (!card) return;
+
+  const customer = card.customer_id ? DB.getCustomer(card.customer_id) : null;
+  const cardType = DB._get('card_types').find(t => t.id === card.type_id);
+
+  document.getElementById('cardDetail').innerHTML = `
+    <div class="p-4 bg-[#FBF9F5] rounded-xl">
+      <p class="text-xs text-[#5C635D] mb-1">卡号</p>
+      <p class="font-mono text-lg text-[#1F2421]">${card.card_no}</p>
+    </div>
+    <div class="p-4 bg-[#FBF9F5] rounded-xl">
+      <p class="text-xs text-[#5C635D] mb-1">密码</p>
+      <p class="font-mono text-lg text-[#1F2421]">${card.password}</p>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <p class="text-xs text-[#5C635D] mb-1">类型</p>
+        <p class="text-[#1F2421]">${cardType ? cardType.name : '-'}</p>
+      </div>
+      <div>
+        <p class="text-xs text-[#5C635D] mb-1">金额</p>
+        <p class="font-semibold text-[#C4612F]">¥${card.amount}</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-3 gap-3">
+      <div>
+        <p class="text-xs text-[#5C635D] mb-1">状态</p>
+        <p class="text-[#1F2421]">${{'active':'激活','frozen':'冻结','used':'已使用','expired':'已过期'}[card.status]}</p>
+      </div>
+      <div>
+        <p class="text-xs text-[#5C635D] mb-1">绑定状态</p>
+        <p class="text-[#1F2421]">${card.bind_status === 'bound' ? '已绑定' : '未绑定'}</p>
+      </div>
+      <div>
+        <p class="text-xs text-[#5C635D] mb-1">兑换状态</p>
+        <p class="text-[#1F2421]">${card.redeem_status === 'redeemed' ? '已兑换' : '未兑换'}</p>
+      </div>
+    </div>
+    ${customer ? `
+      <div>
+        <p class="text-xs text-[#5C635D] mb-1">绑定客户</p>
+        <p class="text-[#1F2421]">${customer.name} (${customer.phone})</p>
+      </div>
+    ` : ''}
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <p class="text-xs text-[#5C635D] mb-1">创建时间</p>
+        <p class="text-[#1F2421]">${new Date(card.created_at).toLocaleString()}</p>
+      </div>
+      <div>
+        <p class="text-xs text-[#5C635D] mb-1">有效期至</p>
+        <p class="text-[#1F2421]">${new Date(card.expire_at).toLocaleDateString()}</p>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+
+function closeDetailModal() {
+  document.getElementById('detailModal').classList.add('hidden');
+}
+
+// 冻结/解冻
+function freezeCard(id) {
+  if (confirm('确认冻结此礼卡？')) {
+    DB.updateCardStatus(id, 'frozen');
+    loadCards();
+  }
+}
+
+function unfreezeCard(id) {
+  if (confirm('确认解冻此礼卡？')) {
+    DB.updateCardStatus(id, 'active');
+    loadCards();
+  }
+}
+
+// 初始化
+initGenerator();
+loadCards();
+</script>
+</body>
+</html>

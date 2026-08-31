@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>购物车 - 牧美满</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; letter-spacing: -0.02em; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+</style>
+<link rel="stylesheet" href="_mobile.css"/>
+</head>
+<body>
+
+<!-- 顶部 -->
+<div class="bg-white border-b border-[#E7E1D7] px-4 py-3 sticky top-0 z-40">
+  <div class="flex items-center gap-3">
+    <a href="orders.html" class="w-9 h-9 rounded-full hover:bg-[#FBF9F5] flex items-center justify-center">
+      <span class="material-symbols-outlined text-[#1F2421]">arrow_back</span>
+    </a>
+    <h1 class="text-lg font-semibold text-[#1F2421]">购物车</h1>
+  </div>
+</div>
+
+<!-- 主内容 -->
+<div class="px-4 py-6 pb-32">
+  <div id="cartContainer">
+    <!-- 动态加载 -->
+  </div>
+
+  <!-- 收货地址 -->
+  <div id="addressSection" class="mt-6 p-5 bg-white rounded-2xl border border-[#E7E1D7]" style="display:none;">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-base font-semibold text-[#1F2421]">收货地址</h2>
+      <a href="addresses.html" class="text-sm text-[#C4612F] hover:text-[#A94E22]">管理地址</a>
+    </div>
+    <div id="addressList">
+      <!-- 加载地址 -->
+    </div>
+  </div>
+
+  <!-- 备注 -->
+  <div id="noteSection" class="mt-6 p-5 bg-white rounded-2xl border border-[#E7E1D7]" style="display:none;">
+    <label class="block text-sm font-medium text-[#1F2421] mb-2">备注（选填）</label>
+    <textarea id="note" rows="2"
+              class="w-full px-4 py-3 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F] resize-none"
+              placeholder="有特殊要求可以备注"></textarea>
+  </div>
+</div>
+
+<!-- 底部结算栏 -->
+<div id="checkoutBar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E7E1D7] px-4 py-3 safe-area-inset-bottom" style="display:none;">
+  <div class="flex items-center justify-between gap-4">
+    <div class="flex-1">
+      <p class="text-xs text-[#5C635D]">共 <span id="totalCount">0</span> 件商品</p>
+    </div>
+    <button onclick="checkout()" class="px-6 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full font-medium transition-colors">
+      结算
+    </button>
+  </div>
+</div>
+
+<div id="nav"></div>
+
+<script src="../db.js"></script>
+<script src="_nav.js"></script>
+<script>
+document.getElementById('nav').innerHTML = CustomerNav.render('orders');
+const customerId = getOrCreateCustomerId();
+let selectedAddressId = null;
+
+// 加载购物车
+function loadCart() {
+  const cartItems = DB.getCart(customerId);
+  const container = document.getElementById('cartContainer');
+
+  if (cartItems.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-16">
+        <span class="material-symbols-outlined text-6xl text-[#E7E1D7]">shopping_cart</span>
+        <p class="text-sm text-[#5C635D] mt-4 mb-6">购物车是空的</p>
+        <a href="index.html" class="inline-block px-6 py-3 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full text-sm transition-colors">
+          去兑换
+        </a>
+      </div>
+    `;
+    document.getElementById('addressSection').style.display = 'none';
+    document.getElementById('noteSection').style.display = 'none';
+    document.getElementById('checkoutBar').style.display = 'none';
+    return;
+  }
+
+  // 显示地址和备注区域
+  document.getElementById('addressSection').style.display = 'block';
+  document.getElementById('noteSection').style.display = 'block';
+  document.getElementById('checkoutBar').style.display = 'block';
+  document.getElementById('totalCount').textContent = cartItems.length;
+
+  const giftBoxes = DB.getGiftBoxes();
+
+  container.innerHTML = cartItems.map(item => {
+    const box = giftBoxes.find(b => b.id === item.gift_box_id);
+    const imageUrl = box && box.images && box.images[0] ? `../${box.images[0]}` : '';
+
+    return `
+      <div class="mb-4 p-4 bg-white rounded-2xl border border-[#E7E1D7]">
+        <div class="flex gap-3">
+          ${imageUrl ? `
+            <img src="${imageUrl}" alt="${item.gift_box_name}" class="w-20 h-20 rounded-xl object-cover"/>
+          ` : `
+            <div class="w-20 h-20 rounded-xl bg-[#FBF9F5] flex items-center justify-center">
+              <span class="material-symbols-outlined text-3xl text-[#E7E1D7]">inventory_2</span>
+            </div>
+          `}
+          <div class="flex-1">
+            <h3 class="text-sm font-semibold text-[#1F2421] mb-1">${item.gift_box_name}</h3>
+            <p class="text-xs text-[#5C635D] mb-2">使用礼卡: ${item.card_number}</p>
+            <div class="flex items-center justify-between">
+              <span class="text-base font-semibold text-[#C4612F]">¥${item.gift_box_price}</span>
+              <button onclick="removeItem(${item.id})" class="text-xs text-[#5C635D] hover:text-[#C4612F] transition-colors">
+                删除
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  loadAddresses();
+}
+
+// 加载收货地址
+function loadAddresses() {
+  const addresses = DB.getCustomerAddresses(customerId);
+  const container = document.getElementById('addressList');
+
+  if (addresses.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-6">
+        <p class="text-sm text-[#5C635D] mb-3">暂无收货地址</p>
+        <a href="addresses.html" class="inline-block px-4 py-2 bg-[#C4612F] hover:bg-[#A94E22] text-white rounded-full text-sm transition-colors">
+          添加收货地址
+        </a>
+      </div>
+    `;
+    return;
+  }
+
+  // 默认选中默认地址
+  const defaultAddr = addresses.find(a => a.is_default);
+  if (defaultAddr) {
+    selectedAddressId = defaultAddr.id;
+  } else {
+    selectedAddressId = addresses[0].id;
+  }
+
+  container.innerHTML = addresses.map(addr => `
+    <label class="flex items-start gap-3 p-4 rounded-xl border-2 ${addr.id === selectedAddressId ? 'border-[#C4612F] bg-[#FBF9F5]' : 'border-[#E7E1D7]'} cursor-pointer hover:border-[#C4612F] transition-colors mb-3">
+      <input type="radio" name="address" value="${addr.id}" ${addr.id === selectedAddressId ? 'checked' : ''}
+             onchange="selectedAddressId = ${addr.id}; loadAddresses();"
+             class="mt-1 w-5 h-5 text-[#C4612F] focus:ring-[#C4612F]"/>
+      <div class="flex-1">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="font-semibold text-[#1F2421]">${addr.receiver_name}</span>
+          <span class="text-sm text-[#5C635D]">${addr.receiver_phone}</span>
+          ${addr.is_default ? '<span class="px-2 py-0.5 bg-[#C4612F] text-white rounded-full text-xs">默认</span>' : ''}
+        </div>
+        <p class="text-sm text-[#5C635D]">${addr.receiver_address}</p>
+      </div>
+    </label>
+  `).join('');
+}
+
+// 删除购物车项
+function removeItem(itemId) {
+  if (!confirm('确定要从购物车中移除吗？')) return;
+
+  const result = DB.removeFromCart(customerId, itemId);
+  if (result.success) {
+    loadCart();
+  } else {
+    alert(result.message || '删除失败');
+  }
+}
+
+// 结算
+function checkout() {
+  const cartItems = DB.getCart(customerId);
+  if (cartItems.length === 0) {
+    alert('购物车为空');
+    return;
+  }
+
+  if (!selectedAddressId) {
+    alert('请选择收货地址');
+    return;
+  }
+
+  const addresses = DB.getCustomerAddresses(customerId);
+  const selectedAddress = addresses.find(a => a.id === selectedAddressId);
+
+  if (!selectedAddress) {
+    alert('收货地址不存在');
+    return;
+  }
+
+  const note = document.getElementById('note').value.trim();
+
+  const result = DB.checkoutCart(customerId, {
+    receiver_name: selectedAddress.receiver_name,
+    receiver_phone: selectedAddress.receiver_phone,
+    receiver_address: selectedAddress.receiver_address,
+    note: note
+  });
+
+  if (result.success) {
+    alert(`兑换成功！已创建 ${result.orders.length} 个订单`);
+    window.location.href = 'orders.html';
+  } else {
+    alert(result.message || '结算失败');
+  }
+}
+
+loadCart();
+</script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>客户管理 - 商家后台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; }
+</style>
+</head>
+<body>
+
+<div class="max-w-7xl mx-auto px-6 py-6">
+  <div class="mb-6">
+    <h2 class="heading text-3xl text-[#1F2421] mb-1">客户管理</h2>
+    <p class="text-[#5C635D] text-sm">管理客户信息及关联关系</p>
+  </div>
+
+  <!-- 统计 -->
+  <div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+      <p class="text-xs text-[#5C635D] mb-1">总客户数</p>
+      <p class="text-2xl font-semibold text-[#1F2421]" id="stat_total">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+      <p class="text-xs text-[#5C635D] mb-1">已绑卡客户</p>
+      <p class="text-2xl font-semibold text-blue-600" id="stat_bound">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+      <p class="text-xs text-[#5C635D] mb-1">已兑换客户</p>
+      <p class="text-2xl font-semibold text-green-600" id="stat_redeemed">0</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5">
+      <p class="text-xs text-[#5C635D] mb-1">今日新增</p>
+      <p class="text-2xl font-semibold text-purple-600" id="stat_today">0</p>
+    </div>
+  </div>
+
+  <!-- 搜索 -->
+  <div class="bg-white rounded-2xl border border-[#E7E1D7] p-5 mb-6">
+    <div class="flex gap-4">
+      <input type="text" id="searchInput" placeholder="搜索客户姓名、电话、微信ID..."
+             class="flex-1 px-4 py-2 rounded-xl border border-[#E7E1D7] focus:outline-none focus:border-[#C4612F]"
+             oninput="loadCustomers()"/>
+      <button onclick="exportCustomers()"
+              class="px-6 py-2 border border-[#E7E1D7] text-[#1F2421] rounded-xl hover:bg-[#FBF9F5]">
+        导出Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- 客户列表 -->
+  <div class="bg-white rounded-2xl border border-[#E7E1D7] overflow-hidden">
+    <table class="w-full">
+      <thead class="bg-[#FBF9F5] border-b border-[#E7E1D7]">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">ID</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">客户姓名</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">电话号码</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">邮箱</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">微信ID</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">绑定礼卡</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">兑换订单</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">注册时间</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-[#5C635D]">操作</th>
+        </tr>
+      </thead>
+      <tbody id="customersTable">
+        <tr>
+          <td colspan="9" class="px-4 py-8 text-center text-[#5C635D]">加载中...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 客户详情弹窗 -->
+<div id="detailModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+  <div class="bg-white rounded-3xl max-w-3xl w-full p-8 my-8">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="heading text-2xl text-[#1F2421]">客户详情</h3>
+      <button onclick="closeDetailModal()" class="text-[#5C635D] hover:text-[#1F2421]">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div id="customerDetail"></div>
+  </div>
+</div>
+
+<script src="../db.js"></script>
+<script>
+// 检查登录状态
+const user = DB.getCurrentUser();
+if (!user || user.role !== 'merchant') {
+  window.location.href = 'login.html';
+}
+
+function loadCustomers() {
+  try {
+    const search = document.getElementById('searchInput').value;
+    const customers = DB.getCustomers({ search });
+
+    console.log('加载客户数据:', customers.length, customers);
+
+    // 获取关联数据
+    let cards = [];
+    let orders = [];
+
+    try {
+      cards = DB.getCards();
+    } catch(e) {
+      console.error('获取礼卡数据失败:', e);
+      cards = [];
+    }
+
+    try {
+      orders = DB.getOrders();
+    } catch(e) {
+      console.error('获取订单数据失败:', e);
+      orders = [];
+    }
+
+    // 统计
+    const today = new Date().toDateString();
+    const todayCustomers = customers.filter(c => c.created_at && new Date(c.created_at).toDateString() === today);
+    const boundCustomers = customers.filter(c => cards.some(card => card.customer_id === c.id));
+    const redeemedCustomers = customers.filter(c => orders.some(o => o.customer_id === c.id));
+
+    document.getElementById('stat_total').textContent = customers.length;
+    document.getElementById('stat_bound').textContent = boundCustomers.length;
+    document.getElementById('stat_redeemed').textContent = redeemedCustomers.length;
+    document.getElementById('stat_today').textContent = todayCustomers.length;
+
+    // 渲染表格
+    const tbody = document.getElementById('customersTable');
+
+    if (customers.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-[#5C635D]">暂无客户</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = customers.map(customer => {
+      const customerCards = cards.filter(c => c.customer_id === customer.id);
+      const customerOrders = orders.filter(o => o.customer_id === customer.id);
+
+      return `
+        <tr class="border-b border-[#E7E1D7] hover:bg-[#FBF9F5] transition-colors">
+          <td class="px-4 py-3 text-sm text-[#1F2421]">${customer.id}</td>
+          <td class="px-4 py-3 text-sm font-medium text-[#1F2421]">${customer.name || '-'}</td>
+          <td class="px-4 py-3 text-sm text-[#1F2421]">${customer.phone || '-'}</td>
+          <td class="px-4 py-3 text-sm text-[#5C635D]">${customer.email || '-'}</td>
+          <td class="px-4 py-3 text-sm text-[#5C635D]">${customer.wechat_id || '-'}</td>
+          <td class="px-4 py-3">
+            <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+              ${customerCards.length} 张
+            </span>
+          </td>
+          <td class="px-4 py-3">
+            <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+              ${customerOrders.length} 单
+            </span>
+          </td>
+          <td class="px-4 py-3 text-sm text-[#5C635D]">
+            ${customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '-'}
+          </td>
+          <td class="px-4 py-3">
+            <button onclick="viewCustomer(${customer.id})"
+                    class="text-[#C4612F] hover:text-[#A94E22] text-sm font-medium">
+              详情
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch(error) {
+    console.error('loadCustomers 执行错误:', error);
+    const tbody = document.getElementById('customersTable');
+    tbody.innerHTML = `<tr><td colspan="9" class="px-4 py-8 text-center text-red-600">加载失败: ${error.message}</td></tr>`;
+  }
+}
+
+function viewCustomer(id) {
+  const customer = DB.getCustomer(id);
+  if (!customer) return;
+
+  const cards = DB.getCards().filter(c => c.customer_id === id);
+  const orders = DB.getOrders({ customer_id: id });
+
+  document.getElementById('customerDetail').innerHTML = `
+    <div class="space-y-6">
+      <!-- 基本信息 -->
+      <div class="p-5 border border-[#E7E1D7] rounded-2xl">
+        <h4 class="font-semibold text-[#1F2421] mb-4">基本信息</h4>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <p class="text-[#5C635D] mb-1">客户ID</p>
+            <p class="text-[#1F2421] font-medium">${customer.id}</p>
+          </div>
+          <div>
+            <p class="text-[#5C635D] mb-1">姓名</p>
+            <p class="text-[#1F2421] font-medium">${customer.name || '-'}</p>
+          </div>
+          <div>
+            <p class="text-[#5C635D] mb-1">电话号码</p>
+            <p class="text-[#1F2421]">${customer.phone || '-'}</p>
+          </div>
+          <div>
+            <p class="text-[#5C635D] mb-1">邮箱</p>
+            <p class="text-[#1F2421]">${customer.email || '-'}</p>
+          </div>
+          <div>
+            <p class="text-[#5C635D] mb-1">微信ID</p>
+            <p class="text-[#1F2421]">${customer.wechat_id || '-'}</p>
+          </div>
+          <div>
+            <p class="text-[#5C635D] mb-1">注册时间</p>
+            <p class="text-[#1F2421]">${customer.created_at ? new Date(customer.created_at).toLocaleString() : '-'}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 收货地址 -->
+      <div class="p-5 border border-[#E7E1D7] rounded-2xl">
+        <h4 class="font-semibold text-[#1F2421] mb-4">收货地址</h4>
+        ${(() => {
+          const addresses = DB.getCustomerAddresses(id);
+          if (addresses.length === 0) {
+            return '<p class="text-sm text-[#5C635D]">暂无收货地址</p>';
+          }
+          return `
+            <div class="space-y-3">
+              ${addresses.map(addr => `
+                <div class="p-4 bg-[#FBF9F5] rounded-xl">
+                  <div class="flex items-start justify-between mb-2">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="font-medium text-[#1F2421]">${addr.receiver_name}</span>
+                        <span class="text-sm text-[#5C635D]">${addr.receiver_phone}</span>
+                        ${addr.is_default ? '<span class="px-2 py-0.5 bg-[#C4612F] text-white rounded text-xs">默认</span>' : ''}
+                      </div>
+                      <p class="text-sm text-[#5C635D]">${addr.receiver_address}</p>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        })()}
+      </div>
+
+      <!-- 绑定礼卡 -->
+      <div class="p-5 border border-[#E7E1D7] rounded-2xl">
+        <h4 class="font-semibold text-[#1F2421] mb-4">绑定礼卡（${cards.length}张）</h4>
+        ${cards.length > 0 ? `
+          <div class="space-y-3">
+            ${cards.map(card => {
+              const cardType = DB._get('card_types').find(t => t.id === card.type_id);
+              return `
+                <div class="p-4 bg-[#FBF9F5] rounded-xl">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="font-mono text-sm text-[#1F2421]">${card.card_no}</span>
+                    <span class="px-2 py-1 bg-${card.status === 'active' ? 'green' : card.status === 'used' ? 'gray' : 'red'}-100
+                                 text-${card.status === 'active' ? 'green' : card.status === 'used' ? 'gray' : 'red'}-700
+                                 rounded-full text-xs">
+                      ${{'active':'激活','used':'已使用','frozen':'冻结','expired':'过期'}[card.status]}
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-[#5C635D]">${cardType ? cardType.name : ''}</span>
+                    <span class="text-[#C4612F] font-semibold">¥${card.amount}</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        ` : '<p class="text-sm text-[#5C635D]">暂无绑定礼卡</p>'}
+      </div>
+
+      <!-- 兑换订单 -->
+      <div class="p-5 border border-[#E7E1D7] rounded-2xl">
+        <h4 class="font-semibold text-[#1F2421] mb-4">兑换订单（${orders.length}单）</h4>
+        ${orders.length > 0 ? `
+          <div class="space-y-3">
+            ${orders.map(order => {
+              const giftBox = DB.getGiftBox(order.gift_box_id);
+              const statusConfig = {
+                pending: { label: '待审核', color: 'orange' },
+                approved: { label: '已通过', color: 'green' },
+                rejected: { label: '已拒绝', color: 'red' },
+                shipped: { label: '已发货', color: 'blue' },
+                completed: { label: '已完成', color: 'purple' }
+              }[order.status];
+              return `
+                <div class="p-4 bg-[#FBF9F5] rounded-xl">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm text-[#1F2421]">${order.order_no}</span>
+                    <span class="px-2 py-1 bg-${statusConfig.color}-100 text-${statusConfig.color}-700 rounded-full text-xs">
+                      ${statusConfig.label}
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-[#5C635D]">${giftBox ? giftBox.name : '-'}</span>
+                    <span class="text-[#5C635D]">${new Date(order.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        ` : '<p class="text-sm text-[#5C635D]">暂无兑换订单</p>'}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('detailModal').classList.remove('hidden');
+}
+
+function closeDetailModal() {
+  document.getElementById('detailModal').classList.add('hidden');
+}
+
+function exportCustomers() {
+  const csv = DB.exportToExcel('customers');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `客户数据_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+}
+
+loadCustomers();
+</script>
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>重置数据库 - 牧美满礼卡系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; background: #F7F4EF; }
+  .heading { font-family: 'Fraunces', serif; }
+</style>
+</head>
+<body class="flex items-center justify-center min-h-screen px-4">
+
+<div class="w-full max-w-md">
+  <div class="text-center mb-8">
+    <h1 class="heading text-3xl text-[#1F2421] mb-1">
+      测试数据<span style="color: #C4612F; font-style: italic;">恢复工具</span>
+    </h1>
+    <p class="text-[#5C635D] text-sm">重置订单状态，方便重新测试完整流程</p>
+  </div>
+
+  <div class="bg-white rounded-3xl border border-[#E7E1D7] shadow-sm p-8">
+    <div class="mb-6">
+      <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl mb-4">
+        <p class="text-sm text-blue-800 mb-2">
+          <strong>当前数据状态：</strong>
+        </p>
+        <div class="text-xs text-blue-700 space-y-1" id="currentStatus">
+          加载中...
+        </div>
+      </div>
+
+      <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-xl mb-4">
+        <p class="text-sm text-yellow-800">
+          ℹ️ <strong>说明：</strong>此操作将重置订单状态到初始状态，保留所有用户、礼卡、订单数据
+        </p>
+      </div>
+
+      <div class="space-y-2 text-sm text-[#5C635D]">
+        <p>✓ 保留所有用户数据</p>
+        <p>✓ 保留所有礼卡数据</p>
+        <p>✓ 保留所有订单记录</p>
+        <p>✓ 重置订单状态为"待发货"</p>
+        <p>✓ 清空物流信息</p>
+      </div>
+    </div>
+
+    <button onclick="resetTestData()"
+            class="w-full bg-[#C4612F] hover:bg-[#A0501F] text-white font-medium py-3 rounded-full transition-colors mb-3">
+      恢复测试数据
+    </button>
+
+    <button onclick="window.location.href='index.html'"
+            class="w-full border border-[#E7E1D7] text-[#1F2421] font-medium py-3 rounded-full hover:bg-[#FBF9F5] transition-colors">
+      取消返回
+    </button>
+
+    <div id="result" class="mt-4 hidden">
+      <!-- 结果显示 -->
+    </div>
+  </div>
+</div>
+
+<script src="db.js"></script>
+<script>
+// 显示当前数据状态
+function showCurrentStatus() {
+  const customers = DB._get('customers');
+  const cards = DB._get('gift_cards');
+  const orders = DB._get('orders');
+  const users = DB._get('users');
+
+  const statusDiv = document.getElementById('currentStatus');
+  statusDiv.innerHTML = `
+    <p>• 系统用户：${users.length} 个</p>
+    <p>• 客户：${customers.length} 个</p>
+    <p>• 礼卡：${cards.length} 张</p>
+    <p>• 订单：${orders.length} 个</p>
+    <p>• 初始化状态：${localStorage.getItem('_db_initialized') === '1' ? '已初始化' : '未初始化'}</p>
+  `;
+}
+
+function resetTestData() {
+  if (!confirm('确认要恢复测试数据吗？订单状态将重置到初始状态，物流信息将被清空。')) {
+    return;
+  }
+
+  try {
+    const orders = DB._get('orders');
+    const orderItems = DB._get('order_items');
+
+    // 定义初始订单状态映射（根据种子数据）
+    const initialStatus = {
+      1: 'partial',
+      2: 'pending',
+      3: 'approved',
+      4: 'shipped',
+      5: 'completed',
+      6: 'rejected',
+      7: 'pending',
+      8: 'approved',
+      9: 'shipped',
+      10: 'completed',
+      11: 'shipped',
+      12: 'pending',
+      13: 'approved',
+      14: 'shipped',
+      15: 'completed',
+      16: 'pending',
+      17: 'rejected'
+    };
+
+    // 重置所有订单状态
+    orders.forEach(order => {
+      if (initialStatus[order.id]) {
+        order.status = initialStatus[order.id];
+      }
+    });
+    DB._set('orders', orders);
+
+    // 重置订单项状态
+    const initialItemStatus = {
+      1: 'pending', 2: 'approved', 3: 'shipped',  // 订单1 partial
+      4: 'pending',  // 订单2
+      5: 'approved', // 订单3
+      6: 'shipped',  // 订单4
+      7: 'completed', // 订单5
+      8: 'rejected', // 订单6
+      9: 'pending',  // 订单7
+      10: 'approved', // 订单8
+      11: 'shipped',  // 订单9
+      12: 'completed', // 订单10
+      13: 'shipped',  // 订单11
+      14: 'pending',  // 订单12
+      15: 'approved', // 订单13
+      16: 'shipped',  // 订单14
+      17: 'completed', // 订单15
+      18: 'pending',  // 订单16
+      19: 'rejected'  // 订单17
+    };
+
+    orderItems.forEach(item => {
+      if (initialItemStatus[item.id]) {
+        item.status = initialItemStatus[item.id];
+      }
+    });
+    DB._set('order_items', orderItems);
+
+    // 清空物流信息，只保留订单11的物流
+    const baseTime = new Date().getTime() - 86400000 * 3;
+    DB._set('logistics', [
+      {
+        id: 1,
+        order_id: 11,
+        order_no: 'DDWL202608030011',
+        logistics_no: 'YT88960001795',
+        logistics_company: '圆通快递',
+        logistics_company_id: 3,
+        courier_name: '黎师傅',
+        courier_phone: '18200000001',
+        receiver_name: '刘备',
+        receiver_phone: '13900000001',
+        receiver_address: '内蒙古呼和浩特市赛罕区大学东街110号',
+        delivery_method: '上门配送',
+        status: 'delivered',
+        created_at: new Date(baseTime + 30000000).toISOString(),
+        shipped_at: new Date(baseTime + 31000000).toISOString(),
+        delivered_at: new Date(baseTime + 36000000).toISOString(),
+        tracking_details: [
+          {
+            time: '2026-08-27 10:49:56',
+            location: '呼和浩特市赛罕区',
+            status: 'delivered',
+            description: '您的快件已送达，收件人：办公室门口。如遇找不到包裹等问题，请联系快递员:18200000001，或致电专属客服95554，处理更快捷！感谢使用圆通速递，期待再次为您服务！'
+          },
+          {
+            time: '2026-08-27 10:09:36',
+            location: '呼和浩特市赛罕区',
+            status: 'in_transit',
+            description: '【呼和浩特市赛罕区大学东街】的黎师傅(18200000001)正在为您派件(95161和18521号段的上海号码为圆通快递员专属号码，请放心接听。如遇物流问题，请联系快递员为您解决，或致电专属客服95554）'
+          },
+          {
+            time: '2026-08-27 01:13:25',
+            location: '呼和浩特市赛罕区城西',
+            status: 'in_transit',
+            description: '您的快件已经到达【呼和浩特市赛罕区城西】【物流问题请致电（专属热线:95554）更快解决】'
+          },
+          {
+            time: '2026-08-26 21:23:53',
+            location: '呼和浩特转运中心',
+            status: 'in_transit',
+            description: '您的快件离开【呼和浩特转运中心】，已发往【呼和浩特市赛罕区城西】'
+          },
+          {
+            time: '2026-08-26 20:57:58',
+            location: '呼和浩特转运中心',
+            status: 'in_transit',
+            description: '您的快件已经到达【呼和浩特转运中心】【物流问题请致电（专属热线:95554）更快解决】'
+          },
+          {
+            time: '2026-08-26 15:32:10',
+            location: '苏尼特右旗网点',
+            status: 'shipped',
+            description: '【苏尼特右旗网点】已收件（揽件人：张三，电话:13500000001）'
+          }
+        ]
+      }
+    ]);
+
+    // 更新状态显示
+    showCurrentStatus();
+
+    // 显示成功消息
+    const resultDiv = document.getElementById('result');
+    resultDiv.className = 'mt-4 p-4 bg-green-50 border border-green-200 rounded-xl';
+    resultDiv.innerHTML = `
+      <p class="text-sm text-green-800 mb-2">✓ 测试数据恢复成功！</p>
+      <p class="text-xs text-green-700 mb-1">• 订单状态已重置到初始状态</p>
+      <p class="text-xs text-green-700 mb-1">• 物流信息已清空（保留订单11的物流）</p>
+      <p class="text-xs text-green-700 mb-3">• 用户、礼卡、订单记录全部保留</p>
+      <button onclick="window.location.href='customer/index.html'"
+              class="mt-3 w-full px-4 py-2 bg-[#C4612F] text-white rounded-lg hover:bg-[#A0501F]">
+        进入客户首页
+      </button>
+    `;
+    resultDiv.classList.remove('hidden');
+
+  } catch (err) {
+    const resultDiv = document.getElementById('result');
+    resultDiv.className = 'mt-4 p-4 bg-red-50 border border-red-200 rounded-xl';
+    resultDiv.innerHTML = `
+      <p class="text-sm text-red-800">✗ 恢复失败：${err.message}</p>
+    `;
+    resultDiv.classList.remove('hidden');
+  }
+}
+
+// 页面加载时显示当前状态
+showCurrentStatus();
+</script>
+</body>
+</html>
