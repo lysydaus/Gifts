@@ -5,7 +5,7 @@
 
 const DB_ADAPTER = 'local';
 const ENCRYPT_KEY = 'YZN_GIFT_CARD_2026'; // 简单密钥
-const DB_VERSION = '18'; // 修改种子数据后递增此版本号
+const DB_VERSION = '19'; // 修改种子数据后递增此版本号
 
 const DB = {
   // ── 工具函数 ──────────────────────────────────────────────
