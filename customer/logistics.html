@@ -15,7 +15,7 @@
   .timeline-dot::before { content: ''; position: absolute; left: 50%; top: 100%; width: 2px; height: 100%; background: #E7E1D7; transform: translateX(-50%); }
   .timeline-item:last-child .timeline-dot::before { display: none; }
 </style>
-<link rel="stylesheet" href="_mobile.css"/>
+<link rel="stylesheet" href="mobile.css"/>
 </head>
 <body>
 
@@ -35,7 +35,7 @@
 <div id="nav"></div>
 
 <script src="../db.js"></script>
-<script src="_nav.js"></script>
+<script src="nav.js"></script>
 <script>
 document.getElementById('nav').innerHTML = CustomerNav.render('orders');
 DB.init();
